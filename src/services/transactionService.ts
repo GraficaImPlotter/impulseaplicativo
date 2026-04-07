@@ -11,7 +11,16 @@ export interface Transaction {
   amount: number;
   due_date: string;
   paid_date?: string;
+  competence_date?: string;
   category?: string;
+  cost_center?: string;
+  payment_method?: string;
+  reference_code?: string;
+  nsu?: string;
+  installment_number?: number;
+  total_installments?: number;
+  parent_id?: string;
+  recurrence?: string;
   client_id?: string;
   project_id?: string;
   supplier_id?: string;
@@ -22,6 +31,12 @@ export interface Transaction {
   updated_at: string;
 }
 
+export interface TransactionSplit {
+  cost_center_id: string;
+  percentage?: number;
+  amount?: number;
+}
+
 export interface CreateTransactionData {
   type: TransactionType;
   status?: TransactionStatus;
@@ -29,12 +44,21 @@ export interface CreateTransactionData {
   amount: number;
   due_date: string;
   paid_date?: string;
+  competence_date?: string;
   category?: string;
+  cost_center?: string;
+  payment_method?: string;
+  reference_code?: string;
+  nsu?: string;
   client_id?: string;
   project_id?: string;
   supplier_id?: string;
   account_id?: string;
   notes?: string;
+  installment_number?: number;
+  total_installments?: number;
+  parent_id?: string;
+  splits?: TransactionSplit[];
 }
 
 export interface FinancialSummary {
@@ -94,15 +118,72 @@ export const transactionService = {
 
   async create(transaction: CreateTransactionData): Promise<Transaction> {
     const { data: { user } } = await supabase.auth.getUser();
+    const { splits, ...txData } = transaction;
     
     const { data, error } = await supabase
       .from('transactions')
-      .insert({ ...transaction, created_by: user?.id })
+      .insert({ ...txData, created_by: user?.id })
       .select()
       .single();
 
     if (error) throw error;
+
+    if (splits && splits.length > 0) {
+      const splitInserts = splits.map(s => ({
+        transaction_id: data.id,
+        cost_center_id: s.cost_center_id,
+        percentage: s.percentage,
+        amount: s.amount
+      }));
+      await supabase.from('transaction_splits').insert(splitInserts);
+    }
+
     return data as Transaction;
+  },
+
+  async createBatch(transaction: CreateTransactionData, installments: number): Promise<Transaction[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const createdTransactions: Transaction[] = [];
+    const parentId = crypto.randomUUID();
+    const { splits, ...txData } = transaction;
+
+    for (let i = 1; i <= installments; i++) {
+        const dueDate = new Date(transaction.due_date);
+        dueDate.setMonth(dueDate.getMonth() + (i - 1));
+
+        const installmentData = {
+            ...txData,
+            due_date: dueDate.toISOString().split('T')[0],
+            installment_number: i,
+            total_installments: installments,
+            parent_id: i === 1 ? undefined : createdTransactions[0].id, // First one is parent if we want hierarchical, or use a separate grouping UUID
+            created_by: user?.id,
+            amount: transaction.amount / installments
+        };
+
+        const { data, error } = await supabase
+            .from('transactions')
+            .insert(installmentData)
+            .select()
+            .single();
+
+        if (error) throw error;
+        
+        // Handle splits for each installment
+        if (splits && splits.length > 0) {
+            const splitInserts = splits.map(s => ({
+                transaction_id: data.id,
+                cost_center_id: s.cost_center_id,
+                percentage: s.percentage,
+                amount: (s.amount || 0) / installments
+            }));
+            await supabase.from('transaction_splits').insert(splitInserts);
+        }
+
+        createdTransactions.push(data as Transaction);
+    }
+
+    return createdTransactions;
   },
 
   async update(id: string, transaction: Partial<CreateTransactionData>): Promise<Transaction> {

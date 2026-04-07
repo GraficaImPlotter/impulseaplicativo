@@ -1235,22 +1235,97 @@ export type Database = {
         }
         Relationships: []
       },
+      cost_centers: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      },
+      transaction_splits: {
+        Row: {
+          id: string
+          transaction_id: string
+          cost_center_id: string
+          percentage: number | null
+          amount: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          transaction_id: string
+          cost_center_id: string
+          percentage?: number | null
+          amount?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          transaction_id?: string
+          cost_center_id?: string
+          percentage?: number | null
+          amount?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_splits_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_splits_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          }
+        ]
+      },
       transactions: {
         Row: {
           account_id: string | null
           amount: number
           category: string | null
           client_id: string | null
+          competence_date: string | null
+          cost_center: string | null
           created_at: string
           created_by: string | null
           description: string
           due_date: string
           id: string
+          installment_number: number | null
           notes: string | null
+          nsu: string | null
           paid_date: string | null
+          parent_id: string | null
+          payment_method: string | null
           project_id: string | null
+          recurrence: string | null
+          reference_code: string | null
           status: Database["public"]["Enums"]["transaction_status"]
           supplier_id: string | null
+          total_installments: number | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
         }
@@ -1259,16 +1334,25 @@ export type Database = {
           amount: number
           category?: string | null
           client_id?: string | null
+          competence_date?: string | null
+          cost_center?: string | null
           created_at?: string
           created_by?: string | null
           description: string
           due_date: string
           id?: string
+          installment_number?: number | null
           notes?: string | null
+          nsu?: string | null
           paid_date?: string | null
+          parent_id?: string | null
+          payment_method?: string | null
           project_id?: string | null
+          recurrence?: string | null
+          reference_code?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           supplier_id?: string | null
+          total_installments?: number | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
         }
@@ -1277,16 +1361,25 @@ export type Database = {
           amount?: number
           category?: string | null
           client_id?: string | null
+          competence_date?: string | null
+          cost_center?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
           due_date?: string
           id?: string
+          installment_number?: number | null
           notes?: string | null
+          nsu?: string | null
           paid_date?: string | null
+          parent_id?: string | null
+          payment_method?: string | null
           project_id?: string | null
+          recurrence?: string | null
+          reference_code?: string | null
           status?: Database["public"]["Enums"]["transaction_status"]
           supplier_id?: string | null
+          total_installments?: number | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
         }

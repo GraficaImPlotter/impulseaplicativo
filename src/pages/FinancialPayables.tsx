@@ -21,6 +21,7 @@ import { FinancialHeader } from '@/components/financial/FinancialHeader';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { csvService } from '@/services/csvService';
+import { TransactionFormModal } from '@/components/financial/TransactionFormModal';
 
 const STATUS_COLORS: Record<TransactionStatus, string> = {
   PENDENTE: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -83,11 +84,15 @@ export default function FinancialPayables() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: transactionService.create,
+    mutationFn: (args: { data: CreateTransactionData, installments: number }): Promise<any> => 
+        args.installments > 1 
+            ? transactionService.createBatch(args.data, args.installments)
+            : transactionService.create(args.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Despesa lançada com sucesso!');
-      resetForm();
+      toast.success('Lançamento(s) criado(s) com sucesso!');
+      setIsDialogOpen(false);
+      setEditingTransaction(null);
     },
   });
 
@@ -97,7 +102,8 @@ export default function FinancialPayables() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Lançamento atualizado!');
-      resetForm();
+      setIsDialogOpen(false);
+      setEditingTransaction(null);
     },
   });
 
@@ -119,42 +125,20 @@ export default function FinancialPayables() {
 
   // Handlers
   const resetForm = useCallback(() => {
-    setFormData({
-      type: 'DESPESA',
-      status: 'PENDENTE',
-      description: '',
-      amount: 0,
-      due_date: new Date().toISOString().split('T')[0],
-      category: '',
-      notes: '',
-      account_id: undefined
-    });
     setEditingTransaction(null);
     setIsDialogOpen(false);
   }, []);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    setFormData({
-      type: transaction.type,
-      status: transaction.status,
-      description: transaction.description,
-      amount: transaction.amount,
-      due_date: transaction.due_date,
-      category: transaction.category || '',
-      supplier_id: transaction.supplier_id || undefined,
-      account_id: transaction.account_id || undefined,
-      notes: transaction.notes || '',
-    });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleModalSubmit = (data: CreateTransactionData, installments: number) => {
     if (editingTransaction) {
-      updateMutation.mutate({ id: editingTransaction.id, data: formData });
+      updateMutation.mutate({ id: editingTransaction.id, data });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate({ data, installments });
     }
   };
 
@@ -219,104 +203,16 @@ export default function FinancialPayables() {
               <h1 className="text-2xl font-bold tracking-tight text-destructive">Contas a Pagar</h1>
               <p className="text-muted-foreground">Gerencie suas obrigações, impostos e fornecedores</p>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button onClick={resetForm} className="bg-destructive hover:bg-destructive/90 text-white gap-2">
-                        <Plus className="h-4 w-4" /> Nova Despesa
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>{editingTransaction ? 'Editar Lançamento' : 'Nova Despesa'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="col-span-2 space-y-1.5">
-                                <Label>Descrição / Resumo *</Label>
-                                <Input 
-                                    value={formData.description} 
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                    placeholder="Ex: Aluguel Mensal"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Valor (R$) *</Label>
-                                <Input 
-                                    type="number" step="0.01" 
-                                    value={formData.amount} 
-                                    onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Vencimento *</Label>
-                                <Input 
-                                    type="date"
-                                    value={formData.due_date} 
-                                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Status</Label>
-                                <Select value={formData.status} onValueChange={(v: TransactionStatus) => setFormData({...formData, status: v})}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="PENDENTE">Em Aberto</SelectItem>
-                                        <SelectItem value="PAGO">Pago</SelectItem>
-                                        <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Conta / Caixa</Label>
-                                <Select value={formData.account_id} onValueChange={(v) => setFormData({...formData, account_id: v})}>
-                                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {accounts.map(acc => (
-                                            <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Categoria</Label>
-                                <Input 
-                                    value={formData.category} 
-                                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                    placeholder="Ex: Operacional, Impostos"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Fornecedor</Label>
-                                <Select value={formData.supplier_id} onValueChange={(v) => setFormData({...formData, supplier_id: v})}>
-                                    <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                                    <SelectContent>
-                                        {suppliers.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label>Observações</Label>
-                            <Textarea 
-                                value={formData.notes} 
-                                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                rows={2}
-                            />
-                        </div>
-                        <div className="flex justify-end gap-3 pt-4">
-                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" className="bg-destructive hover:bg-destructive/90 text-white">
-                                {editingTransaction ? 'Salvar Alterações' : 'Confirmar Lançamento'}
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="bg-destructive hover:bg-destructive/90 text-white gap-2">
+                <Plus className="h-4 w-4" /> Nova Despesa
+            </Button>
+            <TransactionFormModal 
+                type="DESPESA"
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                transaction={editingTransaction}
+                onSubmit={handleModalSubmit}
+            />
         </div>
 
         <FinancialHeader 
