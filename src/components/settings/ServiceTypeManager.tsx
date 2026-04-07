@@ -140,8 +140,8 @@ export function ServiceTypeManager({ isMaster }: ServiceTypeManagerProps) {
   };
 
   return (
-    <>
-      <div className="space-y-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Tipos de Serviço</h3>
           <p className="text-sm text-muted-foreground">
@@ -296,10 +296,10 @@ export function ServiceTypeManager({ isMaster }: ServiceTypeManagerProps) {
                         type="button"
                         variant="ghost"
                         size="icon"
-                      onClick={() => moveChecklistItem(index, 'down')}
-                      disabled={!isMaster || index === (formData.checklist_template ?? []).length - 1}
-                    >
-                      <ArrowDown className="h-4 w-4" />
+                        onClick={() => moveChecklistItem(index, 'down')}
+                        disabled={!isMaster || index === (formData.checklist_template ?? []).length - 1}
+                      >
+                        <ArrowDown className="h-4 w-4" />
                       </Button>
                       <Button
                         type="button"
@@ -334,30 +334,29 @@ export function ServiceTypeManager({ isMaster }: ServiceTypeManagerProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
 
-    <AlertDialog open={!!typeToDelete} onOpenChange={(open) => !open && setTypeToDelete(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir Tipo de Serviço</AlertDialogTitle>
-          <AlertDialogDescription>
-            Tem certeza que deseja excluir o tipo "{typeToDelete?.name}"? Esta ação não pode ser desfeita.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive hover:bg-destructive/90"
-            onClick={() => {
-              if (typeToDelete) deleteMutation.mutate(typeToDelete.id);
-              setTypeToDelete(null);
-            }}
-          >
-            Excluir
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    </>
+      <AlertDialog open={!!typeToDelete} onOpenChange={(open) => !open && setTypeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Tipo de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o tipo "{typeToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (typeToDelete) deleteMutation.mutate(typeToDelete.id);
+                setTypeToDelete(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
