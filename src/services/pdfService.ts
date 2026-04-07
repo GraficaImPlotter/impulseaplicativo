@@ -31,6 +31,7 @@ interface DroneOS {
   office_notes?: string;
   technician_notes?: string;
   created_at: string;
+  logs?: { created_by_name: string; created_at: string; message: string }[];
 }
 
 export const pdfService = {
@@ -184,10 +185,31 @@ export const pdfService = {
 
     currentY += 25;
     doc.setFont('helvetica', 'bold');
-    doc.text('Relatório do Técnico:', 14, currentY);
+    doc.text('Diário de Operação (Mensagens):', 14, currentY);
     currentY += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text(service.technician_notes || 'Nenhuma observação técnica registrada.', 14, currentY, { maxWidth: pageWidth - 28 });
+    
+    if (service.logs && service.logs.length > 0) {
+        autoTable(doc, {
+            startY: currentY,
+            head: [['DE', 'DATA/HORA', 'MENSAGEM']],
+            body: service.logs.map(log => [
+                log.created_by_name,
+                format(new Date(log.created_at), 'dd/MM/yyyy HH:mm'),
+                log.message
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [224, 231, 255], textColor: [49, 46, 129], fontSize: 8 },
+            styles: { fontSize: 8, overflow: 'linebreak', cellWidth: 'wrap' },
+            columns: [
+                { header: 'DE', dataKey: 'de' },
+                { header: 'DATA/HORA', dataKey: 'data' },
+                { header: 'MENSAGEM', dataKey: 'msg' }
+            ]
+        });
+    } else {
+        doc.text('Nenhum registro de conversa nesta OS.', 14, currentY);
+    }
 
     // Signatures
     currentY = doc.internal.pageSize.getHeight() - 60;
