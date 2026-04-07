@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Building2, Users, Save, Plus, Pencil, Trash2, Loader2, Calculator, Wrench, ClipboardList } from 'lucide-react';
+import { Building2, Users, Save, Plus, Pencil, Trash2, Loader2, Calculator, Wrench, ClipboardList, Landmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCompanySettings, updateCompanySettings, CompanySettings } from '@/services/companySettingsService';
 import { getUsers, updateUserRole, deleteUser, createUser, UserWithRole, CreateUserData } from '@/services/userService';
 import { quoteSettingsService } from '@/services/quoteSettingsService';
 import { ServiceTypeManager } from '@/components/settings/ServiceTypeManager';
 import { ProjectChecklistTemplateManager } from '@/components/settings/ProjectChecklistTemplateManager';
+import { FinancialAccountManager } from '@/components/settings/FinancialAccountManager';
 import { useAuth } from '@/hooks/use-auth';
 import { UserRole } from '@/types';
 
@@ -272,6 +273,10 @@ export default function Settings() {
           <TabsTrigger value="users" className="gap-2">
             <Users className="h-4 w-4" />
             Usuários
+          </TabsTrigger>
+          <TabsTrigger value="accounts" className="gap-2">
+            <Landmark className="h-4 w-4" />
+            Contas
           </TabsTrigger>
         </TabsList>
 
@@ -622,6 +627,20 @@ export default function Settings() {
                   Nenhum usuário encontrado
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="accounts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contas Financeiras</CardTitle>
+              <CardDescription>
+                Configure seus bancos e caixas para lançamentos financeiros
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FinancialAccountManager />
             </CardContent>
           </Card>
         </TabsContent>

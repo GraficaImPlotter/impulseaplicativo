@@ -15,6 +15,7 @@ export interface Transaction {
   client_id?: string;
   project_id?: string;
   supplier_id?: string;
+  account_id?: string;
   notes?: string;
   created_by?: string;
   created_at: string;
@@ -32,6 +33,7 @@ export interface CreateTransactionData {
   client_id?: string;
   project_id?: string;
   supplier_id?: string;
+  account_id?: string;
   notes?: string;
 }
 
@@ -46,7 +48,13 @@ export interface FinancialSummary {
 }
 
 export const transactionService = {
-  async getAll(filters?: { type?: TransactionType; status?: TransactionStatus; startDate?: string; endDate?: string }): Promise<Transaction[]> {
+  async getAll(filters?: { 
+    type?: TransactionType; 
+    status?: TransactionStatus; 
+    startDate?: string; 
+    endDate?: string;
+    account_id?: string;
+  }): Promise<Transaction[]> {
     let query = supabase
       .from('transactions')
       .select('*')
@@ -63,6 +71,9 @@ export const transactionService = {
     }
     if (filters?.endDate) {
       query = query.lte('due_date', filters.endDate);
+    }
+    if (filters?.account_id && filters.account_id !== 'all') {
+      query = query.eq('account_id', filters.account_id);
     }
 
     const { data, error } = await query;
@@ -130,10 +141,22 @@ export const transactionService = {
     return data as Transaction;
   },
 
-  async getSummary(): Promise<FinancialSummary> {
-    const { data, error } = await supabase
+  async getSummary(filters?: { account_id?: string; startDate?: string; endDate?: string }): Promise<FinancialSummary> {
+    let query = supabase
       .from('transactions')
       .select('type, status, amount');
+
+    if (filters?.account_id && filters.account_id !== 'all') {
+      query = query.eq('account_id', filters.account_id);
+    }
+    if (filters?.startDate) {
+      query = query.gte('due_date', filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.lte('due_date', filters.endDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

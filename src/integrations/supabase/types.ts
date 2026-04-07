@@ -1184,8 +1184,42 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_accounts: {
+        Row: {
+          active: boolean | null
+          color: string | null
+          created_at: string | null
+          id: string
+          initial_balance: number | null
+          name: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          initial_balance?: number | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          initial_balance?: number | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      },
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
           category: string | null
           client_id: string | null
@@ -1203,6 +1237,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category?: string | null
           client_id?: string | null
@@ -1220,6 +1255,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category?: string | null
           client_id?: string | null
@@ -1256,6 +1292,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
             referencedColumns: ["id"]
           },
         ]
