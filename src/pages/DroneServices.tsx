@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, MapPin, Plane, Ruler, Calendar, CheckCircle2, Clock, AlertCircle, FileText } from 'lucide-react';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
@@ -109,107 +110,97 @@ export default function DroneServices() {
             </div>
         </div>
 
-        {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => (
-                    <Card key={i} className="animate-pulse h-48 bg-slate-100" />
-                ))}
-            </div>
-        ) : services.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-200">
-                <Plane className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-400 font-medium">Nenhuma ordem de serviço encontrada.</p>
-            </div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((service) => {
-                    const config = STATUS_CONFIG[service.status];
-                    return (
-                        <Card key={service.id} className="group hover:shadow-xl transition-all duration-300 border-none bg-white dark:bg-slate-800 overflow-hidden relative">
-                            <div className={`absolute top-0 left-0 w-1 h-full ${service.status === 'FINALIZADO' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                            <CardContent className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <Badge variant="outline" className={`font-bold px-3 py-1 gap-1.5 ${config.color}`}>
-                                        <config.icon className="h-3 w-3" />
-                                        {config.label}
-                                    </Badge>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-32">
-                                            <DropdownMenuItem onClick={() => handleEdit(service)} className="gap-2 cursor-pointer">
-                                                <Edit className="h-4 w-4" /> Editar
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => pdfService.generateDetailedDronePDF(service)} className="gap-2 cursor-pointer text-emerald-600">
-                                                <FileText className="h-4 w-4" /> PDF
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleDelete(service.id)} className="gap-2 cursor-pointer text-rose-600">
-                                                <Trash2 className="h-4 w-4" /> Excluir
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+        <Card className="border-none shadow-sm overflow-hidden rounded-2xl">
+          <CardContent className="p-0">
+            {isLoading ? (
+                <div className="p-10 space-y-4">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-12 w-full bg-slate-50 animate-pulse rounded-lg" />
+                    ))}
+                </div>
+            ) : services.length === 0 ? (
+                <div className="text-center py-20 bg-white dark:bg-slate-800">
+                    <Plane className="h-12 w-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-medium">Nenhuma ordem de serviço encontrada.</p>
+                </div>
+            ) : (
+                <Table>
+                  <TableHeader className="bg-slate-50 dark:bg-slate-900">
+                    <TableRow className="hover:bg-transparent border-slate-100">
+                      <TableHead className="font-bold text-slate-500 h-12">ID/OS</TableHead>
+                      <TableHead className="font-bold text-slate-500 h-12">Cliente</TableHead>
+                      <TableHead className="font-bold text-slate-500 h-12">Área</TableHead>
+                      <TableHead className="font-bold text-slate-500 h-12">Status</TableHead>
+                      <TableHead className="font-bold text-slate-500 h-12">Data Abertura</TableHead>
+                      <TableHead className="text-right font-bold text-slate-500 h-12">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map((service) => {
+                        const config = STATUS_CONFIG[service.status];
+                        return (
+                            <TableRow key={service.id} className="hover:bg-slate-50 border-slate-50 transition-colors group">
+                              <TableCell className="font-mono text-xs text-slate-400">
+                                #{service.id.slice(0, 5)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-900 dark:text-white">{service.client_name}</span>
+                                  <span className="text-[10px] text-slate-400 uppercase font-medium">{service.client_document || 'Sem doc.'}</span>
                                 </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="font-black text-xl text-slate-900 dark:text-white line-clamp-1">{service.client_name}</h3>
-                                        <p className="text-sm text-slate-400 font-medium flex items-center gap-1.5 mt-1">
-                                            <Calendar className="h-3.5 w-3.5" />
-                                            {format(new Date(service.created_at), "dd 'de' MMMM", { locale: ptBR })}
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3 py-4 border-y border-slate-50 dark:border-slate-700">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter block">Área Total</span>
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                                                <Ruler className="h-3.5 w-3.5 text-blue-500" />
-                                                {service.area_hectares ? `${service.area_hectares} ha` : '-'}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-1 text-right">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter block">Localização</span>
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 ml-auto">
-                                                <MapPin className="h-3.5 w-3.5 text-rose-500" />
-                                                {service.location_link ? (
-                                                    <a 
-                                                        href={service.location_link.startsWith('http') ? service.location_link : `https://${service.location_link}`} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
-                                                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                                        onClick={e => e.stopPropagation()}
-                                                    >
-                                                        Ver Mapa
-                                                    </a>
-                                                ) : '-'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-2">
-                                        <p className="text-xs font-bold text-slate-400 uppercase mb-1">Serviço:</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                                            {service.service_description}
-                                        </p>
-                                    </div>
-                                    
-                                    <Button 
-                                        variant="ghost" 
-                                        onClick={() => handleEdit(service)}
-                                        className="w-full mt-2 bg-slate-50 dark:bg-slate-900 hover:bg-blue-50 hover:text-blue-600 rounded-xl font-bold group-hover:bg-blue-600 group-hover:text-white transition-all"
-                                    >
-                                        Abrir Detalhes
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                  <Ruler className="h-3.5 w-3.5 text-blue-500" />
+                                  {service.area_hectares ? `${service.area_hectares} ha` : '-'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`font-bold px-3 py-1 gap-1.5 ${config.color} border-none`}>
+                                    <config.icon className="h-3 w-3" />
+                                    {config.label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-slate-500 font-medium text-sm">
+                                {format(new Date(service.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {service.location_link && (
+                                    <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-rose-500">
+                                      <a href={service.location_link.startsWith('http') ? service.location_link : `https://${service.location_link}`} target="_blank" rel="noopener noreferrer">
+                                        <MapPin className="h-4 w-4" />
+                                      </a>
                                     </Button>
+                                  )}
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400">
+                                              <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-40 border-slate-100 shadow-xl rounded-xl">
+                                          <DropdownMenuItem onClick={() => handleEdit(service)} className="gap-2 cursor-pointer font-medium">
+                                              <Edit className="h-4 w-4 text-slate-400" /> Editar OS
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => pdfService.generateDetailedDronePDF(service)} className="gap-2 cursor-pointer font-medium text-emerald-600">
+                                              <FileText className="h-4 w-4" /> Exportar PDF
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleDelete(service.id)} className="gap-2 cursor-pointer font-medium text-rose-600">
+                                              <Trash2 className="h-4 w-4" /> Excluir OS
+                                          </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
-        )}
+                              </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                  </TableBody>
+                </Table>
+            )}
+          </CardContent>
+        </Card>
 
         <DroneServiceModal 
           open={isModalOpen}

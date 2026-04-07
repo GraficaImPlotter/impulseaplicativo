@@ -236,8 +236,8 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-50 dark:bg-slate-900 border-none shadow-2xl flex flex-col max-h-[90vh]">
-        <DialogHeader className="p-5 bg-white dark:bg-slate-800 border-b flex-shrink-0 flex flex-row items-center justify-between">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-slate-50 dark:bg-slate-900 border-none shadow-2xl flex flex-col max-h-[95vh]">
+        <DialogHeader className="p-4 bg-white dark:bg-slate-800 border-b flex-shrink-0 flex flex-row items-center justify-between">
           <DialogTitle className="text-lg font-bold flex items-center gap-2">
             <div className="w-2 h-5 rounded-full bg-blue-500" />
             {service ? 'OS Drone#' + service.id.slice(0, 5) : 'Nova Operação Drone'}
@@ -268,8 +268,8 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
             <div className="flex-1 overflow-y-auto min-h-0">
 
               {/* TAB 1: CLIENTE */}
-              <TabsContent value="client" className="p-5 m-0 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <TabsContent value="client" className="p-4 m-0 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">CPF / CNPJ</Label>
                     <div className="relative">
@@ -277,13 +277,13 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
                       {searchingData && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-blue-500" />}
                     </div>
                   </div>
-                  <div className="space-y-1 md:col-span-2">
+                  <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Nome / Razão Social *</Label>
                     <Input value={formData.client_name} onChange={e => f('client_name', e.target.value)} required className="bg-white h-9 text-sm" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Telefone / WhatsApp</Label>
                     <Input value={formData.client_phone} onChange={e => f('client_phone', maskPhone(e.target.value))} placeholder="(00) 00000-0000" className="bg-white h-9 text-sm" />
@@ -292,57 +292,60 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">CEP</Label>
                     <Input value={formData.client_cep} onChange={e => f('client_cep', maskCEP(e.target.value))} onBlur={handleSearchCEP} placeholder="00000-000" className="bg-white h-9 text-sm" />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Cidade *</Label>
-                    <Input value={formData.client_address_city} onChange={e => f('client_address_city', e.target.value)} placeholder="Cidade" className="bg-white h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase">UF *</Label>
-                    <Input value={formData.client_address_state} onChange={e => f('client_address_state', e.target.value.toUpperCase())} maxLength={2} placeholder="UF" className="bg-white h-9 text-sm" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">Cidade *</Label>
+                      <Input value={formData.client_address_city} onChange={e => f('client_address_city', e.target.value)} placeholder="Cidade" className="bg-white h-9 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase">UF *</Label>
+                      <Input value={formData.client_address_state} onChange={e => f('client_address_state', e.target.value.toUpperCase())} maxLength={2} placeholder="UF" className="bg-white h-9 text-sm" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-6 gap-4">
-                  <div className="space-y-1 col-span-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1 md:col-span-2">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Endereço (Rua/Estrada)</Label>
                     <Input value={formData.client_address_street} onChange={e => f('client_address_street', e.target.value)} className="bg-white h-9 text-sm" />
                   </div>
-                  <div className="space-y-1 col-span-1">
+                  <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Número</Label>
                     <Input value={formData.client_address_number} onChange={e => f('client_address_number', e.target.value)} placeholder="S/N" className="bg-white h-9 text-sm" />
                   </div>
-                  <div className="space-y-1 col-span-2">
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Bairro</Label>
                     <Input value={formData.client_address_neighborhood} onChange={e => f('client_address_neighborhood', e.target.value)} className="bg-white h-9 text-sm" />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Complemento</Label>
-                  <Input value={formData.client_address_complement} onChange={e => f('client_address_complement', e.target.value)} placeholder="Fazenda, Lote, Bloco..." className="bg-white h-9 text-sm" />
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Complemento</Label>
+                    <Input value={formData.client_address_complement} onChange={e => f('client_address_complement', e.target.value)} placeholder="Fazenda, Lote, Bloco..." className="bg-white h-9 text-sm" />
+                  </div>
                 </div>
               </TabsContent>
 
               {/* TAB 2: SERVIÇO */}
-              <TabsContent value="service" className="p-5 m-0 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TabsContent value="service" className="p-4 m-0 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Situação</Label>
                     <Select value={formData.status} onValueChange={v => setFormData(prev => ({ ...prev, status: v as DroneServiceStatus }))}>
-                      <SelectTrigger className="bg-white h-9 font-bold text-blue-600 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(STATUS_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+                      <SelectTrigger className="bg-white h-9 font-bold text-blue-600 text-sm focus:ring-0 shadow-none"><SelectValue /></SelectTrigger>
+                      <SelectContent className="border-none shadow-xl">{Object.entries(STATUS_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-[10px] font-bold text-slate-500 uppercase">Escopo da Pulverização *</Label>
-                  <Textarea value={formData.service_description} onChange={e => f('service_description', e.target.value)} required className="bg-white min-h-[100px] text-sm" />
+                  <Textarea value={formData.service_description} onChange={e => f('service_description', e.target.value)} required className="bg-white min-h-[80px] text-sm focus-visible:ring-0 border-slate-200" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t mt-1">
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1"><Ruler className="h-3 w-3" /> Área (Hectares)</Label>
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1"><Ruler className="h-3 w-3" /> Área (ha)</Label>
                     <Input type="number" step="0.01" value={formData.area_hectares} onChange={e => f('area_hectares', e.target.value)} className="bg-white h-9 text-lg font-black" />
                   </div>
                   <div className="space-y-1 md:col-span-2">
@@ -355,13 +358,13 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
                   <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1"><MapPin className="h-3 w-3" /> Localização Exata</Label>
                   <div className="flex gap-2">
                     <Input value={formData.location_link} onChange={e => f('location_link', e.target.value)} placeholder="Link do Maps ou coordenadas..." className="bg-white h-9 text-sm flex-1" />
-                    <Button type="button" variant="outline" onClick={captureGPS} size="sm" className="bg-blue-50 text-blue-600 h-9 px-3"><Crosshair className="h-4 w-4 mr-1" /> GPS</Button>
+                    <Button type="button" variant="outline" onClick={captureGPS} size="sm" className="bg-blue-50 text-blue-600 h-9 px-3 border-blue-100"><Crosshair className="h-4 w-4 mr-1" /> GPS</Button>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-[10px] font-bold text-slate-500 uppercase">Observações do Escritório</Label>
-                  <Textarea value={formData.office_notes} onChange={e => f('office_notes', e.target.value)} className="bg-white min-h-[60px] text-sm" />
+                  <Textarea value={formData.office_notes} onChange={e => f('office_notes', e.target.value)} className="bg-white min-h-[50px] text-sm focus-visible:ring-0 border-slate-200" />
                 </div>
               </TabsContent>
 
