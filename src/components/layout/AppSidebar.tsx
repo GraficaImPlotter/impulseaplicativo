@@ -21,6 +21,7 @@ import {
   Briefcase,
   ClipboardList,
   Filter,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -32,6 +33,7 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   roles?: UserRole[];
+  children?: { title: string; href: string }[];
 }
 
 const navItems: NavItem[] = [
@@ -47,7 +49,16 @@ const navItems: NavItem[] = [
   { title: 'Agenda', href: '/agenda', icon: Calendar },
   { title: 'Fornecedores', href: '/suppliers', icon: Building2, roles: ['MASTER', 'DEV'] },
   { title: 'Estoque', href: '/inventory', icon: Package, roles: ['MASTER', 'DEV', 'COMPRAS'] },
-  { title: 'Financeiro', href: '/financial', icon: DollarSign, roles: ['MASTER', 'DEV', 'FINANCEIRO'] },
+  { 
+    title: 'Financeiro', 
+    href: '/financial', 
+    icon: DollarSign, 
+    roles: ['MASTER', 'DEV', 'FINANCEIRO'],
+    children: [
+      { title: 'Contas a Receber', href: '/financial/receivables' },
+      { title: 'Contas a Pagar', href: '/financial/payables' },
+    ]
+  },
   { title: 'Funcionários', href: '/employees', icon: Users, roles: ['MASTER', 'DEV'] },
   { title: 'Meu Perfil', href: '/my-profile', icon: User },
   { title: 'Configurações', href: '/settings', icon: Settings, roles: ['MASTER', 'DEV'] },
@@ -56,8 +67,15 @@ const navItems: NavItem[] = [
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>(['/financial']);
   const { user, logout, hasRole } = useAuth();
   const location = useLocation();
+
+  const toggleMenu = (href: string) => {
+    setOpenMenus(prev => 
+      prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href]
+    );
+  };
 
   const filteredNavItems = navItems.filter(
     (item) => !item.roles || hasRole(item.roles)
@@ -82,7 +100,61 @@ export function AppSidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
         {filteredNavItems.map((item) => {
-          const isActive = location.pathname.startsWith(item.href);
+          const isActive = location.pathname === item.href || (item.children && location.pathname.startsWith(item.href));
+          const isMenuOpen = openMenus.includes(item.href);
+          
+          if (item.children && !collapsed) {
+            return (
+              <div key={item.href} className="space-y-1">
+                <button
+                  onClick={() => toggleMenu(item.href)}
+                  className={cn(
+                    'flex items-center justify-between w-full px-4 py-3 rounded-lg transition-all duration-200 group',
+                    isActive
+                      ? 'bg-impulse-gold/10 text-impulse-gold font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
+                        isActive ? 'text-impulse-gold' : 'text-impulse-gold'
+                      )}
+                    />
+                    <span className="animate-fade-in">{item.title}</span>
+                  </div>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isMenuOpen ? "rotate-0" : "-rotate-90"
+                  )} />
+                </button>
+                
+                {isMenuOpen && (
+                  <div className="pl-12 space-y-1 animate-slide-down">
+                    {item.children.map((child) => {
+                      const isChildActive = location.pathname === child.href;
+                      return (
+                        <NavLink
+                          key={child.href}
+                          to={child.href}
+                          className={cn(
+                            'block py-2 text-sm transition-colors',
+                            isChildActive 
+                              ? 'text-impulse-gold font-medium' 
+                              : 'text-sidebar-foreground/70 hover:text-impulse-gold'
+                          )}
+                        >
+                          {child.title}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <NavLink
               key={item.href}

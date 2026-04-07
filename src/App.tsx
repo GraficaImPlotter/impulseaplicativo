@@ -16,6 +16,8 @@ import Funnel from "./pages/Funnel";
 import Suppliers from "./pages/Suppliers";
 import Inventory from "./pages/Inventory";
 import Financial from "./pages/Financial";
+import FinancialReceivables from "./pages/FinancialReceivables";
+import FinancialPayables from "./pages/FinancialPayables";
 import SolarCalculator from "./pages/SolarCalculator";
 import Settings from "./pages/Settings";
 import Employees from "./pages/Employees";
@@ -51,6 +53,8 @@ const App = () => (
             <Route path="/suppliers" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV']}><Suppliers /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'COMPRAS']}><Inventory /></ProtectedRoute>} />
             <Route path="/financial" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><Financial /></ProtectedRoute>} />
+            <Route path="/financial/receivables" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><FinancialReceivables /></ProtectedRoute>} />
+            <Route path="/financial/payables" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><FinancialPayables /></ProtectedRoute>} />
             <Route path="/calculator" element={<ProtectedRoute><SolarCalculator /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV']}><Settings /></ProtectedRoute>} />
             <Route path="/employees" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV']}><Employees /></ProtectedRoute>} />
