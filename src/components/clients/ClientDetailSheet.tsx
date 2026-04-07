@@ -97,7 +97,7 @@ export function ClientDetailSheet({
                 name: file.name,
                 uploaded_at: new Date().toISOString() 
               }
-            ] 
+            ] as any
           })
           .eq('id', client.id);
       }
@@ -151,7 +151,7 @@ export function ClientDetailSheet({
       const updatedBills = currentBills.filter((_, i: number) => i !== billIndex);
       await supabase
         .from('clients')
-        .update({ electricity_bills: updatedBills })
+        .update({ electricity_bills: updatedBills as any })
         .eq('id', client.id);
       
       toast.success('Conta de luz removida!');
