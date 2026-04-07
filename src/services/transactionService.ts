@@ -192,6 +192,21 @@ export const transactionService = {
     return createdTransactions;
   },
 
+  async createBatchMany(transactions: any[]): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const formatted = transactions.map(t => ({
+      ...t,
+      created_by: user?.id
+    }));
+
+    const { error } = await supabase
+      .from('transactions')
+      .insert(formatted);
+
+    if (error) throw error;
+  },
+
   async update(id: string, transaction: Partial<CreateTransactionData>): Promise<Transaction> {
     const { data, error } = await supabase
       .from('transactions')

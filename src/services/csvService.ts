@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import Papa from 'papaparse';
 
 export const csvService = {
   /**
@@ -48,5 +48,23 @@ export const csvService = {
       link.click();
       document.body.removeChild(link);
     }
+  },
+
+  /**
+   * Converte um arquivo CSV em array de objetos.
+   */
+  parseCSV: (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      Papa.parse(file, {
+        header: false, // Leremos as colunas brutas para o mapeamento
+        skipEmptyLines: true,
+        complete: (results) => {
+          resolve(results.data);
+        },
+        error: (error) => {
+          reject(error);
+        }
+      });
+    });
   }
 };

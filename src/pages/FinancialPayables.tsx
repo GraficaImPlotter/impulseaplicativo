@@ -22,6 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { csvService } from '@/services/csvService';
 import { TransactionFormModal } from '@/components/financial/TransactionFormModal';
+import { ExportFinancialDialog } from '@/components/financial/ExportFinancialDialog';
 
 const STATUS_COLORS: Record<TransactionStatus, string> = {
   PENDENTE: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -41,6 +42,7 @@ export default function FinancialPayables() {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -167,15 +169,7 @@ export default function FinancialPayables() {
   };
 
   const handleExport = () => {
-    const headers = {
-        due_date: 'Vencimento',
-        paid_date: 'Pagamento',
-        description: 'Descrição',
-        category: 'Categoria',
-        amount: 'Valor (R$)',
-        status: 'Situação'
-    };
-    csvService.exportToCSV(filteredTransactions, `despesas_${format(filters.startDate, 'MMM_yyyy')}`, headers);
+    setIsExportDialogOpen(true);
   };
 
   // Calculations
@@ -229,6 +223,14 @@ export default function FinancialPayables() {
                 onOpenChange={setIsDialogOpen}
                 transaction={editingTransaction}
                 onSubmit={handleModalSubmit}
+            />
+            <ExportFinancialDialog 
+                open={isExportDialogOpen}
+                onOpenChange={setIsExportDialogOpen}
+                accounts={accounts}
+                transactions={filteredTransactions}
+                type="DESPESA"
+                dateRange={{ start: filters.startDate, end: filters.endDate }}
             />
         </div>
 
