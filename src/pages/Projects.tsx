@@ -4,7 +4,7 @@ import { Plus, Search, X, LayoutGrid, List, Calendar, Trash2 } from 'lucide-reac
 import { AppLayout } from '@/components/layout/AppLayout';
 import { cn } from '@/lib/utils';
 import { Project, projectService, ProjectStatus } from '@/services/projectService';
-import { clientService } from '@/services/clientService';
+import { supabase } from '@/integrations/supabase/client';
 import { ProjectModal } from '@/components/projects/ProjectModal';
 import { ProjectKanban } from '@/components/projects/ProjectKanban';
 import { ProjectGantt } from '@/components/projects/ProjectGantt';
@@ -53,19 +53,15 @@ export default function Projects() {
 
       // Fetch client names
       const clientIds = [...new Set(data.filter((p) => p.client_id).map((p) => p.client_id!))];
-      const names: Record<string, string> = {};
-      
-      for (const id of clientIds) {
-        try {
-          const client = await clientService.getById(id);
-          if (client) {
-            names[id] = client.name;
-          }
-        } catch (e) {
-          // Client might not exist
-        }
+      if (clientIds.length > 0) {
+        const { data: clientsData } = await supabase
+          .from('clients')
+          .select('id, name')
+          .in('id', clientIds);
+        const names: Record<string, string> = {};
+        (clientsData || []).forEach(c => { names[c.id] = c.name; });
+        setClientNames(names);
       }
-      setClientNames(names);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast.error('Erro ao carregar projetos');
