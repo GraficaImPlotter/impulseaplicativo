@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Search, Landmark, Filter, CheckSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Landmark, Filter, CheckSquare, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,9 +32,10 @@ interface FinancialHeaderProps {
   };
   selectedCount?: number;
   onBatchAction?: (action: string) => void;
+  onExport?: () => void;
 }
 
-export function FinancialHeader({ type, filters, onFilterChange, summary, selectedCount = 0, onBatchAction }: FinancialHeaderProps) {
+export function FinancialHeader({ type, filters, onFilterChange, summary, selectedCount = 0, onBatchAction, onExport }: FinancialHeaderProps) {
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts-active'],
     queryFn: accountService.getActive,
@@ -118,6 +119,13 @@ export function FinancialHeader({ type, filters, onFilterChange, summary, select
           <Filter className="h-4 w-4" />
           Mais filtros
         </Button>
+
+        {onExport && (
+          <Button variant="outline" onClick={onExport} className="gap-2 h-10 border-emerald-600/50 text-emerald-600 hover:bg-emerald-50">
+            <Download className="h-4 w-4" />
+            Exportar CSV
+          </Button>
+        )}
       </div>
 
       {/* Summary Row */}

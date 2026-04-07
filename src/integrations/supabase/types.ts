@@ -1187,31 +1187,49 @@ export type Database = {
       financial_accounts: {
         Row: {
           active: boolean | null
+          agency: string | null
+          account_number: string | null
+          account_digit: string | null
+          bank_code: string | null
+          bank_name: string | null
           color: string | null
           created_at: string | null
           id: string
           initial_balance: number | null
           name: string
+          person_type: string | null
           type: string | null
           updated_at: string | null
         }
         Insert: {
           active?: boolean | null
+          agency?: string | null
+          account_number?: string | null
+          account_digit?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
           color?: string | null
           created_at?: string | null
           id?: string
           initial_balance?: number | null
           name: string
+          person_type?: string | null
           type?: string | null
           updated_at?: string | null
         }
         Update: {
           active?: boolean | null
+          agency?: string | null
+          account_number?: string | null
+          account_digit?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
           color?: string | null
           created_at?: string | null
           id?: string
           initial_balance?: number | null
           name?: string
+          person_type?: string | null
           type?: string | null
           updated_at?: string | null
         }

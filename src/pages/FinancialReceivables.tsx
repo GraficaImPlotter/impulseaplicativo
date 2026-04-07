@@ -20,6 +20,8 @@ import { ptBR } from 'date-fns/locale';
 import { FinancialHeader } from '@/components/financial/FinancialHeader';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { csvService } from '@/services/csvService';
+import { Landmark } from 'lucide-react';
 
 const STATUS_COLORS: Record<TransactionStatus, string> = {
   PENDENTE: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -169,6 +171,18 @@ export default function FinancialReceivables() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  const handleExport = () => {
+    const headers = {
+        due_date: 'Vencimento',
+        paid_date: 'Recebimento',
+        description: 'Descrição',
+        category: 'Categoria',
+        amount: 'Valor (R$)',
+        status: 'Situação'
+    };
+    csvService.exportToCSV(filteredTransactions, `receitas_${format(filters.startDate, 'MMM_yyyy')}`, headers);
+  };
+
   // Calculations
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => 
@@ -312,6 +326,7 @@ export default function FinancialReceivables() {
             onFilterChange={setFilters}
             summary={summary}
             selectedCount={selectedIds.length}
+            onExport={handleExport}
             onBatchAction={(action) => {
                 if (action === 'markAsPaid') {
                     selectedIds.forEach(id => markAsPaidMutation.mutate(id));
