@@ -72,25 +72,34 @@ export const droneService = {
   async create(data: CreateDroneServiceData): Promise<DroneService> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { data: newService, error } = await (supabase
-      .from('drone_services' as any) as any)
-      .insert({ ...data, created_by: user?.id })
+    const { data: newService, error } = await supabase
+      .from('drone_services' as any)
+      .insert({ 
+        ...data, 
+        created_by: user?.id || null 
+      })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error in droneService.create:', error);
+      throw error;
+    }
     return newService as DroneService;
   },
 
   async update(id: string, data: Partial<CreateDroneServiceData>): Promise<DroneService> {
-    const { data: updatedService, error } = await (supabase
-      .from('drone_services' as any) as any)
+    const { data: updatedService, error } = await supabase
+      .from('drone_services' as any)
       .update(data)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error in droneService.update:', error);
+      throw error;
+    }
     return updatedService as DroneService;
   },
 

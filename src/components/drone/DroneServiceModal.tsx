@@ -138,11 +138,15 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
     client_address_city: formData.client_address_city || null,
     client_address_state: formData.client_address_state || null,
     service_description: formData.service_description,
-    area_hectares: formData.area_hectares ? parseFloat(String(formData.area_hectares)) : null,
+    area_hectares: formData.area_hectares && formData.area_hectares !== '' ? parseFloat(String(formData.area_hectares)) : null,
     product_used: formData.product_used || null,
     location_link: formData.location_link || null,
     status: formData.status,
     office_notes: formData.office_notes || null,
+    // Add missing fields from migration
+    technician_id: service?.technician_id || null,
+    technician_notes: service?.technician_notes || null,
+    attachment_url: service?.attachment_url || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,9 +163,10 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
       }
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      toast.error('Erro ao salvar serviço');
+      const msg = error.message || error.details || 'Erro desconhecido';
+      toast.error(`Erro ao salvar serviço: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -278,7 +283,7 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-slate-500 uppercase">Telefone / WhatsApp</Label>
                     <Input value={formData.client_phone} onChange={e => f('client_phone', maskPhone(e.target.value))} placeholder="(00) 00000-0000" className="bg-white h-9 text-sm" />
@@ -288,8 +293,12 @@ export function DroneServiceModal({ open, onOpenChange, service, onSuccess }: Dr
                     <Input value={formData.client_cep} onChange={e => f('client_cep', maskCEP(e.target.value))} onBlur={handleSearchCEP} placeholder="00000-000" className="bg-white h-9 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Cidade / UF</Label>
-                    <Input value={`${formData.client_address_city}${formData.client_address_city && formData.client_address_state ? ' - ' : ''}${formData.client_address_state}`} readOnly className="bg-slate-100 h-9 text-sm italic text-slate-500" />
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">Cidade *</Label>
+                    <Input value={formData.client_address_city} onChange={e => f('client_address_city', e.target.value)} placeholder="Cidade" className="bg-white h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase">UF *</Label>
+                    <Input value={formData.client_address_state} onChange={e => f('client_address_state', e.target.value.toUpperCase())} maxLength={2} placeholder="UF" className="bg-white h-9 text-sm" />
                   </div>
                 </div>
 
