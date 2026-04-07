@@ -147,9 +147,10 @@ export default function QuoteSignature() {
 
       setSuccess(true);
       setShowSignature(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error signing quote:', err);
-      setError(err.message || 'Erro ao assinar orçamento');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao assinar orçamento';
+      setError(errorMessage);
     } finally {
       setSigning(false);
     }

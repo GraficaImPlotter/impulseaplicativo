@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { Client } from '@/services/clientService';
 
 export type QuoteStatus = 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED';
 export type RoofType = 'CERAMICA' | 'FIBROCIMENTO' | 'METALICA' | 'LAJE';
@@ -123,6 +124,20 @@ export interface CreateQuoteData {
   client_signature?: string;
   client_signed_at?: string;
 }
+
+export interface QuoteFormData extends CreateQuoteData {
+  client?: Client;
+}
+
+export const createAdditionalItem = (overrides?: Partial<AdditionalCostItem>) => ({
+  id:
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `additional-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  description: '',
+  value: 0,
+  ...overrides,
+});
 
 const mapQuoteFromDb = (data: unknown): Quote => {
   const row = data as Record<string, unknown>;

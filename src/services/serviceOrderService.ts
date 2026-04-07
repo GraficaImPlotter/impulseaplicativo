@@ -101,16 +101,22 @@ const mapAttachmentRow = (row: ServiceOrderAttachmentRow): ServiceOrderAttachmen
   sector: row.sector,
 });
 
-const parseServiceOrder = (row: any): ServiceOrder => {
-  const { service_order_attachments, ...rest } = row;
-  const attachments = Array.isArray(service_order_attachments)
-    ? service_order_attachments.map(mapAttachmentRow)
+interface RawServiceOrder extends Omit<ServiceOrder, 'attachments' | 'checklist_state'> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  checklist_state: any;
+  service_order_attachments?: ServiceOrderAttachmentRow[];
+}
+
+const parseServiceOrder = (row: Record<string, unknown>): ServiceOrder => {
+  const raw = row as unknown as RawServiceOrder;
+  const attachments = Array.isArray(raw.service_order_attachments)
+    ? raw.service_order_attachments.map(mapAttachmentRow)
     : [];
 
   return {
-    ...rest,
+    ...raw,
     attachments,
-    checklist_state: Array.isArray(rest.checklist_state) ? rest.checklist_state : [],
+    checklist_state: Array.isArray(raw.checklist_state) ? raw.checklist_state : [],
   };
 };
 
@@ -181,6 +187,7 @@ export const serviceOrderService = {
         ...serviceOrderData,
         opening_date: openingDate,
         created_by: userData.user?.id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checklist_state: serviceOrderData.checklist_state as any,
       })
       .select(`
@@ -209,6 +216,7 @@ export const serviceOrderService = {
       .from('service_orders')
       .update({
         ...updateData,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checklist_state: checklist_state as any,
       })
       .eq('id', id)
@@ -252,7 +260,8 @@ export const serviceOrderService = {
       created_by: userData.user?.id,
     }));
 
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('service_order_attachments')
       .insert(payload)
       .select();
@@ -262,7 +271,8 @@ export const serviceOrderService = {
   },
 
   async deleteAttachment(id: string): Promise<void> {
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('service_order_attachments')
       .delete()
       .eq('id', id);

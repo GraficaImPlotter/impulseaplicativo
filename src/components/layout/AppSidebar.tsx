@@ -23,14 +23,15 @@ import {
   Filter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
+import { UserRole } from '@/types';
 import logoImpulse from '@/assets/logo-impulse.png';
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ElementType;
-  roles?: string[];
+  roles?: UserRole[];
 }
 
 const navItems: NavItem[] = [
@@ -59,7 +60,7 @@ export function AppSidebar() {
   const location = useLocation();
 
   const filteredNavItems = navItems.filter(
-    (item) => !item.roles || hasRole(item.roles as any)
+    (item) => !item.roles || hasRole(item.roles)
   );
 
   return (

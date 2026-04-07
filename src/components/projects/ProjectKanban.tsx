@@ -4,7 +4,7 @@ import { calculateProjectProgress } from './projectStagesConfig';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { GripVertical, User, Zap, Calendar } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { useProjectStages } from '@/hooks/useProjectStages';
 
 interface ProjectKanbanProps {

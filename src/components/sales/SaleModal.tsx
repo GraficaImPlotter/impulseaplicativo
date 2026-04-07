@@ -10,7 +10,7 @@ import { saleService, Sale, SaleItem } from '@/services/saleService';
 import { clientService, Client } from '@/services/clientService';
 import { getCompanySettings, CompanySettings } from '@/services/companySettingsService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { generateSalePDF } from '@/utils/salePdfGenerator';
 import { SignatureCanvas } from './SignatureCanvas';
 

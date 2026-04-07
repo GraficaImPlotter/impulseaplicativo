@@ -134,6 +134,7 @@ export async function getAlerts(): Promise<AlertData[]> {
 
   if (!delayedError && delayedProjects?.length) {
     delayedProjects.forEach(project => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const clientName = (project.clients as any)?.name || 'Cliente';
       alerts.push({
         type: 'error',
@@ -185,14 +186,15 @@ export async function getRecentProjects(): Promise<RecentProject[]> {
   }
 
   return projects?.map(project => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const checklist = project.checklist as Record<string, any> || {};
     let totalItems = 0;
     let completedItems = 0;
 
-    Object.values(checklist).forEach((stage: any) => {
+    Object.values(checklist).forEach((stage) => {
       if (stage?.items && Array.isArray(stage.items)) {
         totalItems += stage.items.length;
-        completedItems += stage.items.filter((item: any) => item.checked).length;
+        completedItems += stage.items.filter((item) => item.checked).length;
       }
     });
 
@@ -200,7 +202,7 @@ export async function getRecentProjects(): Promise<RecentProject[]> {
 
     return {
       id: project.id,
-      clientName: (project.clients as any)?.name || 'Cliente',
+      clientName: (project.clients as { name?: string })?.name || 'Cliente',
       power: project.power_kwp || 0,
       status: project.status,
       progress

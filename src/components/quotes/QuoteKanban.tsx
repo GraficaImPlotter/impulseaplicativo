@@ -3,7 +3,7 @@ import { GripVertical, User, Calendar, CircleDollarSign } from 'lucide-react';
 import { Quote, QuoteStatus, quoteService } from '@/services/quoteService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 const FUNNEL_STAGES: Array<{
   key: QuoteStatus;

@@ -206,7 +206,8 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("Error in send-sale-email function:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),

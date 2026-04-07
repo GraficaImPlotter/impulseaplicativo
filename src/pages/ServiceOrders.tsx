@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useToast } from '@/hooks/use-toast';
 import { usePagination } from '@/hooks/use-pagination';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { ServiceOrder, serviceOrderService } from '@/services/serviceOrderService';
 import { serviceOrderLogService } from '@/services/serviceOrderLogService';
 import { ServiceOrderModal } from '@/components/service-orders/ServiceOrderModal';

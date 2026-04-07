@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, FolderKanban, User, Calendar, ArrowRight, Search, Filter } from 'lucide-react';
 import { Project, projectService } from '@/services/projectService';
 import { clientService } from '@/services/clientService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { ProjectModal } from '@/components/projects/ProjectModal';
 import { calculateProjectProgress } from '@/components/projects/projectStagesConfig';
 import { useProjectStages } from '@/hooks/useProjectStages';
@@ -93,8 +93,8 @@ export default function MyArea() {
         filteredProjects = allProjects;
       } else {
         filteredProjects = allProjects.filter(p => {
-          const assignedRole = (p as any).assigned_role;
-          const assignedTo = (p as any).assigned_to as string | undefined;
+          const assignedRole = p.assigned_role;
+          const assignedTo = p.assigned_to;
           
           // Projeto está ativo para mim OU já passou pelo meu setor
           return isProjectActiveForRole(p.status, assignedRole, userRole, assignedTo, userId) || 
@@ -142,14 +142,14 @@ export default function MyArea() {
       // Outros roles: "Concluídos" = projetos que passaram pelo meu setor
       if (statusFilter === 'em_execucao') {
         result = result.filter(p => {
-          const assignedRole = (p as any).assigned_role;
-          const assignedTo = (p as any).assigned_to as string | undefined;
+          const assignedRole = p.assigned_role;
+          const assignedTo = p.assigned_to;
           return isProjectActiveForRole(p.status, assignedRole, userRole, assignedTo, userId);
         });
       } else if (statusFilter === 'concluidos') {
         result = result.filter(p => {
-          const assignedRole = (p as any).assigned_role;
-          const assignedTo = (p as any).assigned_to as string | undefined;
+          const assignedRole = p.assigned_role;
+          const assignedTo = p.assigned_to;
           return isProjectCompletedForRole(p.status, assignedRole, userRole, assignedTo, userId);
         });
       }
@@ -171,18 +171,18 @@ export default function MyArea() {
         ? a.status === 'POS_VENDA'
         : isProjectCompletedForRole(
             a.status,
-            (a as any).assigned_role,
+            a.assigned_role,
             userRole,
-            (a as any).assigned_to as string | undefined,
+            a.assigned_to,
             userId,
           );
       const bCompleted = hasRole(['MASTER', 'DEV'])
         ? b.status === 'POS_VENDA'
         : isProjectCompletedForRole(
             b.status,
-            (b as any).assigned_role,
+            b.assigned_role,
             userRole,
-            (b as any).assigned_to as string | undefined,
+            b.assigned_to,
             userId,
           );
       
@@ -221,9 +221,7 @@ export default function MyArea() {
   const emExecucaoCount = hasRole(['MASTER', 'DEV'])
     ? projects.filter(p => p.status !== 'POS_VENDA').length
     : projects.filter(p => {
-        const assignedRole = (p as any).assigned_role;
-        const assignedTo = (p as any).assigned_to as string | undefined;
-        return isProjectActiveForRole(p.status, assignedRole, userRole, assignedTo, userId);
+        return isProjectActiveForRole(p.status, p.assigned_role, userRole, p.assigned_to, userId);
       }).length;
   
   const concluidosCount = hasRole(['MASTER', 'DEV'])
@@ -231,9 +229,9 @@ export default function MyArea() {
     : projects.filter(p =>
         isProjectCompletedForRole(
           p.status,
-          (p as any).assigned_role,
+          p.assigned_role,
           userRole,
-          (p as any).assigned_to as string | undefined,
+          p.assigned_to,
           userId,
         ),
       ).length;
@@ -313,8 +311,10 @@ export default function MyArea() {
                 ? project.status === 'POS_VENDA'
                 : isProjectCompletedForRole(
                     project.status,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (project as any).assigned_role,
                     userRole,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (project as any).assigned_to as string | undefined,
                     userId,
                   );

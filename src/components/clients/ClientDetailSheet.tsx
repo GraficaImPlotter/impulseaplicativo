@@ -97,6 +97,7 @@ export function ClientDetailSheet({
                 name: file.name,
                 uploaded_at: new Date().toISOString() 
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any
           })
           .eq('id', client.id);
@@ -151,6 +152,7 @@ export function ClientDetailSheet({
       const updatedBills = currentBills.filter((_, i: number) => i !== billIndex);
       await supabase
         .from('clients')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({ electricity_bills: updatedBills as any })
         .eq('id', client.id);
       

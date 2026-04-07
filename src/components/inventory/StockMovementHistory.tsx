@@ -23,6 +23,19 @@ interface StockMovement {
   created_by_name?: string;
 }
 
+interface RawStockMovement {
+  id: string;
+  product_id: string;
+  movement_type: string;
+  quantity: number;
+  reason: string;
+  project_id: string;
+  created_at: string;
+  created_by: string;
+  products: { name: string } | null;
+  profiles: { name: string } | null;
+}
+
 export function StockMovementHistory() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +60,7 @@ export function StockMovementHistory() {
 
       if (error) throw error;
 
-      const formattedMovements: StockMovement[] = (data || []).map((m: any) => ({
+      const formattedMovements: StockMovement[] = ((data as unknown as RawStockMovement[]) || []).map((m) => ({
         id: m.id,
         product_id: m.product_id,
         product_name: m.products?.name || 'Produto removido',

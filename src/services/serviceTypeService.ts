@@ -22,10 +22,10 @@ export interface CreateServiceTypeData {
   checklist_template?: ServiceTypeChecklistItem[];
 }
 
-const parseServiceType = (row: any): ServiceType => ({
-  ...row,
+const parseServiceType = (row: Record<string, unknown>): ServiceType => ({
+  ...(row as unknown as ServiceType),
   checklist_template: Array.isArray(row.checklist_template) 
-    ? row.checklist_template 
+    ? (row.checklist_template as unknown as ServiceTypeChecklistItem[])
     : [],
 });
 
@@ -58,6 +58,7 @@ export const serviceTypeService = {
         name: serviceType.name,
         deadline_days: serviceType.deadline_days,
         active: serviceType.active ?? true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checklist_template: (serviceType.checklist_template ?? []) as any,
       })
       .select()
@@ -70,6 +71,7 @@ export const serviceTypeService = {
   async update(id: string, serviceType: Partial<CreateServiceTypeData>): Promise<ServiceType> {
     const { data, error } = await supabase
       .from('service_types')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update(serviceType as any)
       .eq('id', id)
       .select()

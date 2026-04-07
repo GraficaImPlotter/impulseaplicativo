@@ -33,13 +33,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Loader2, Trash2, Save, MapPin, User, FileText, Send, Calendar, Paperclip, MessageCircle, Upload, X, CheckCircle2 } from 'lucide-react';
-import { Project, projectService, ProjectStatus, InstallationType } from '@/services/projectService';
+import { Project, projectService, ProjectStatus, InstallationType, DocumentFile, StageDates } from '@/services/projectService';
 import { clientService } from '@/services/clientService';
 import { quoteService } from '@/services/quoteService';
 import { getCompanySettings } from '@/services/companySettingsService';
 import { projectActivityLogService, ProjectActivityLog } from '@/services/projectActivityLogService';
 import { storageService } from '@/services/storageService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import {
   getStageChecklist,
   getStageProgress,
@@ -62,18 +62,7 @@ interface ProjectModalProps {
   preselectedClientId?: string;
 }
 
-interface DocumentFile {
-  name: string;
-  url: string;
-  path: string;
-  type: string;
-  uploaded_at: string;
-}
-
-interface StageDates {
-  start_date: string;
-  estimated_end_date: string;
-}
+// Interface DocumentFile and StageDates are now imported via Project from projectService.ts
 
 // Mapeamento de setores para o role responsável
 const STAGE_ROLES: Record<ProjectStatus, string> = {
@@ -222,7 +211,7 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
         template,
       );
       setChecklist(cleanedChecklist);
-      const stageDocs = (project as any).stage_documents || {};
+      const stageDocs = project.stage_documents || {};
       setStageDocuments(stageDocs.stages || {});
       setStageDates(stageDocs.stageDates || {});
       setStatus(project.status);
@@ -439,7 +428,8 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
       const combinedDocs = { stages: stageDocuments, stageDates };
       const { error } = await (await import('@/integrations/supabase/client')).supabase
         .from('projects')
-        .update({ stage_documents: combinedDocs } as any)
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        .update({ stage_documents: combinedDocs as any })
         .eq('id', project.id);
 
       if (error) throw error;
@@ -510,7 +500,9 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
           _project_id: project.id,
           _new_status: selectedTargetStage,
           _new_assigned_role: targetRole,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           _checklist: checklist as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           _stage_documents: combinedDocs as any,
           _assigned_to: assignedTo,
         });

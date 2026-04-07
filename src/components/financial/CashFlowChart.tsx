@@ -15,6 +15,18 @@ interface CashFlowData {
   acumulado: number;
 }
 
+interface TooltipPayloadItem {
+  color: string;
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
 export function CashFlowChart() {
   const [data, setData] = useState<CashFlowData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,13 +108,13 @@ export function CashFlowChart() {
       notation: 'compact',
     }).format(value);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload) return null;
 
     return (
       <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
         <p className="font-medium text-foreground mb-2">{label}</p>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item: TooltipPayloadItem, index: number) => (
           <div key={index} className="flex items-center gap-2 text-sm">
             <div
               className="w-2 h-2 rounded-full"

@@ -13,7 +13,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SaleModal } from '@/components/sales/SaleModal';
 import { SalesDashboard } from '@/components/sales/SalesDashboard';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import {
   AlertDialog,
   AlertDialogAction,

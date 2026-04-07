@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, Filter, Grid, List, Plus, Check, Zap, Battery, PlugZap } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { kitService, Kit, SystemType, CreateKitData } from '@/services/kitService';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';

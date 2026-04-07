@@ -34,6 +34,31 @@ export interface CreateClientData {
   zip_code?: string;
 }
 
+export interface CNPJData {
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cep: string;
+  municipio: string;
+  uf: string;
+  email?: string;
+  ddd_telefone_1?: string;
+}
+
+export interface CEPData {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+}
+
 export const clientService = {
   async getAll(): Promise<Client[]> {
     const { data, error } = await supabase
@@ -90,18 +115,18 @@ export const clientService = {
     if (error) throw error;
   },
 
-  async searchCNPJ(cnpj: string): Promise<any> {
+  async searchCNPJ(cnpj: string): Promise<CNPJData> {
     const cleanCNPJ = cnpj.replace(/\D/g, '');
     const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
     if (!response.ok) throw new Error('CNPJ não encontrado');
     return response.json();
   },
 
-  async searchCEP(cep: string): Promise<any> {
+  async searchCEP(cep: string): Promise<CEPData> {
     const cleanCEP = cep.replace(/\D/g, '');
     const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
     if (!response.ok) throw new Error('CEP não encontrado');
-    const data = await response.json();
+    const data = await response.json() as CEPData;
     if (data.erro) throw new Error('CEP não encontrado');
     return data;
   },

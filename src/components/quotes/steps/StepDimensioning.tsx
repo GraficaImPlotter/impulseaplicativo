@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { Sun, Calculator } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 
 interface StepDimensioningProps {
   formData: QuoteFormData;

@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { DollarSign, Calculator, TrendingUp, Lock, Plus, Trash2 } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { Slider } from '@/components/ui/slider';
 import { quoteSettingsService } from '@/services/quoteSettingsService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StepPricingProps {

@@ -1,5 +1,5 @@
 import { Settings, Wrench, FileCheck, Monitor } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { cn } from '@/lib/utils';
 
 interface StepServicesProps {

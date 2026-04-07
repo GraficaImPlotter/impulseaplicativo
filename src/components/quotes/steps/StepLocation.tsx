@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MapPin, Search, User, Sun, Navigation } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { Client, clientService } from '@/services/clientService';
 import { RoofType } from '@/services/quoteService';
 import { cn } from '@/lib/utils';

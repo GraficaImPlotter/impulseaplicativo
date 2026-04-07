@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { ServiceOrder, ServiceOrderAttachmentSummary, ServiceOrderChecklistItem, serviceOrderService } from '@/services/serviceOrderService';
 import { ServiceOrderLog, serviceOrderLogService } from '@/services/serviceOrderLogService';
 import { clientService, Client } from '@/services/clientService';

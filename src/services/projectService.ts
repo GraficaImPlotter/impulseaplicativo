@@ -19,9 +19,27 @@ export interface Project {
   estimated_end_date?: string;
   actual_end_date?: string;
   assigned_to?: string;
+  assigned_role?: string;
   created_by?: string;
+  stage_documents?: {
+    stages?: Record<string, DocumentFile[]>;
+    stageDates?: Record<string, StageDates>;
+  };
   created_at: string;
   updated_at: string;
+}
+
+export interface DocumentFile {
+  name: string;
+  url: string;
+  path: string;
+  type: string;
+  uploaded_at: string;
+}
+
+export interface StageDates {
+  start_date: string;
+  estimated_end_date: string;
 }
 
 export interface CreateProjectData {
@@ -87,7 +105,8 @@ export const projectService = {
         checklist: initialChecklist,
         start_date: project.start_date || todayStr,
         estimated_end_date: project.estimated_end_date || estimatedEndDateStr,
-      })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       .select()
       .single();
 
@@ -101,7 +120,8 @@ export const projectService = {
   async update(id: string, project: Partial<CreateProjectData>): Promise<Project> {
     const { data, error } = await supabase
       .from('projects')
-      .update(project)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(project as any)
       .eq('id', id)
       .select()
       .single();
@@ -116,7 +136,8 @@ export const projectService = {
   async updateChecklist(id: string, checklist: Record<string, boolean>): Promise<Project> {
     const { data, error } = await supabase
       .from('projects')
-      .update({ checklist })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ checklist } as any)
       .eq('id', id)
       .select()
       .single();
@@ -137,7 +158,8 @@ export const projectService = {
 
     const { data, error } = await supabase
       .from('projects')
-      .update(updateData)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(updateData as any)
       .eq('id', id)
       .select()
       .single();

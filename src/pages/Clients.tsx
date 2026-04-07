@@ -12,7 +12,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { auditLogService } from '@/services/auditLogService';
 import { ClientDetailSheet } from '@/components/clients/ClientDetailSheet';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ interface ClientWithExtras extends Client {
   quotes_count?: number;
   service_orders_count?: number;
   cpf_rg_url?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   electricity_bills?: any[];
 }
 

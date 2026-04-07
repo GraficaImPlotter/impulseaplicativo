@@ -17,7 +17,8 @@ import { getUsers, updateUserRole, deleteUser, createUser, UserWithRole, CreateU
 import { quoteSettingsService } from '@/services/quoteSettingsService';
 import { ServiceTypeManager } from '@/components/settings/ServiceTypeManager';
 import { ProjectChecklistTemplateManager } from '@/components/settings/ProjectChecklistTemplateManager';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
+import { UserRole } from '@/types';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -207,10 +208,11 @@ export default function Settings() {
       setIsNewUserDialogOpen(false);
       setNewUserData({ email: '', password: '', name: '', role: 'VENDEDOR' });
       loadData();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar usuário';
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao criar usuário',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -638,7 +640,7 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               <Label>Nível de Acesso</Label>
-              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as any)}>
+              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as UserRole)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -701,7 +703,7 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               <Label>Nível de Acesso</Label>
-              <Select value={newUserData.role} onValueChange={(v) => setNewUserData({ ...newUserData, role: v as any })}>
+              <Select value={newUserData.role} onValueChange={(v) => setNewUserData({ ...newUserData, role: v as UserRole })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

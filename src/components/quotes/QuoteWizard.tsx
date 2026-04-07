@@ -3,7 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { quoteService, Quote, CreateQuoteData, AdditionalCostItem } from '@/services/quoteService';
+import { 
+  quoteService, 
+  Quote, 
+  CreateQuoteData, 
+  AdditionalCostItem, 
+  QuoteFormData,
+  createAdditionalItem
+} from '@/services/quoteService';
 import { projectService } from '@/services/projectService';
 import { buildInitialChecklist } from '@/components/projects/projectStagesConfig';
 import { clientService, Client } from '@/services/clientService';
@@ -16,20 +23,6 @@ import { StepServices } from './steps/StepServices';
 import { StepPricing } from './steps/StepPricing';
 import { StepPayback } from './steps/StepPayback';
 import { StepFinalize } from './steps/StepFinalize';
-
-export interface QuoteFormData extends CreateQuoteData {
-  client?: Client;
-}
-
-const createAdditionalItem = (overrides?: Partial<QuoteFormData['additional_cost_items'][number]>) => ({
-  id:
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `additional-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-  description: '',
-  value: 0,
-  ...overrides,
-});
 
 const STEPS = [
   { key: 'location', label: 'Localização', shortLabel: 'Localização', number: 1 },

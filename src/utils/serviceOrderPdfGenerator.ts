@@ -191,6 +191,7 @@ export async function generateServiceOrderPDF(
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     attachments.forEach((attachment: any, index: number) => {
       if (yPos > pageHeight - 30) {
         doc.addPage();

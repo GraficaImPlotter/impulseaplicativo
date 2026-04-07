@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Calendar, DollarSign, CreditCard, Trash2, Plus } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { cn } from '@/lib/utils';
 import { financingBankService, FinancingBank } from '@/services/financingBankService';
 import {

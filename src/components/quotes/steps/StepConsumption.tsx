@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Zap, Plus, Trash2, Upload, FileText, X, Settings, Edit } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { quoteSettingsService } from '@/services/quoteSettingsService';

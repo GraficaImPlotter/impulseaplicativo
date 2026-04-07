@@ -1,30 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import React, { useState, useEffect, ReactNode } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  avatar_url?: string;
-  created_at: string;
-}
-
-interface AuthContextType {
-  user: UserProfile | null;
-  session: Session | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  isProfileLoaded: boolean;
-  login: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
-  logout: () => Promise<void>;
-  hasRole: (roles: UserRole[]) => boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, UserProfile } from '@/hooks/use-auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -172,12 +150,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

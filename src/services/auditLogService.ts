@@ -48,6 +48,7 @@ export const auditLogService = {
       if (!user) return;
 
       // Direct insert to audit_logs table (bypassing type checking for new table)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('audit_logs').insert({
         action,
         entity_type: entityType,
@@ -62,6 +63,7 @@ export const auditLogService = {
   },
 
   async getAll(limit = 100): Promise<AuditLog[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: logs, error } = await (supabase as any)
       .from('audit_logs')
       .select('*')
@@ -71,7 +73,7 @@ export const auditLogService = {
     if (error) throw error;
 
     // Fetch performer names
-    const performerIds = [...new Set((logs || []).map((l: any) => l.performed_by).filter(Boolean))] as string[];
+    const performerIds = [...new Set(((logs as unknown as AuditLog[]) || []).map((l) => l.performed_by).filter(Boolean))] as string[];
     
     let performers: Record<string, { name: string; email: string }> = {};
     if (performerIds.length > 0) {
@@ -88,7 +90,7 @@ export const auditLogService = {
       }
     }
 
-    return (logs || []).map(log => ({
+    return ((logs as unknown as AuditLog[]) || []).map(log => ({
       ...log,
       details: log.details as Record<string, unknown>,
       performer: log.performed_by ? performers[log.performed_by] || null : null,
@@ -96,6 +98,7 @@ export const auditLogService = {
   },
 
   async getByEntity(entityType: EntityType, entityId: string): Promise<AuditLog[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: logs, error } = await (supabase as any)
       .from('audit_logs')
       .select('*')
@@ -104,7 +107,7 @@ export const auditLogService = {
       .order('performed_at', { ascending: false });
 
     if (error) throw error;
-    return (logs || []).map(log => ({
+    return ((logs as unknown as AuditLog[]) || []).map(log => ({
       ...log,
       details: log.details as Record<string, unknown>,
     }));

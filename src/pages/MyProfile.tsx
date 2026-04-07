@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { User, Lock, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function MyProfile() {
@@ -99,11 +99,12 @@ export default function MyProfile() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error changing password:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao alterar senha';
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao alterar senha',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

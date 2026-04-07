@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { FileText, Check, X, MessageCircle, Download, Send, Loader2, PenTool } from 'lucide-react';
-import { QuoteFormData } from '../QuoteWizard';
+import { QuoteFormData } from '@/services/quoteService';
 import { generateQuotePDF } from '@/utils/pdfGenerator';
 
 interface StepFinalizeProps {
