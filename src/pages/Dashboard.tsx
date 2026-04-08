@@ -1,87 +1,113 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FolderKanban, FileText, Wrench, Loader2, ChevronRight, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { 
+  FolderKanban, FileText, Wrench, Loader2, ChevronRight, AlertTriangle, 
+  Clock, CheckCircle, PlusCircle, Users, BarChart3, TrendingUp, TrendingDown,
+  DollarSign
+} from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SmartAlerts } from '@/components/dashboard/SmartAlerts';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useRealtimeInvalidation } from '@/hooks/useRealtimeInvalidation';
+import { Button } from '@/components/ui/button';
 
 interface DashboardSummary {
-  projects: {
-    total: number;
-    inProgress: number;
-    delayed: number;
-  };
-  quotes: {
-    total: number;
-    pending: number;
-    approved: number;
-  };
-  serviceOrders: {
-    total: number;
-    pending: number;
-    overdue: number;
-  };
+  projects: { total: number; inProgress: number; delayed: number; };
+  quotes: { total: number; pending: number; approved: number; };
+  serviceOrders: { total: number; pending: number; overdue: number; };
+  financial: { receivablesPending: number; payablesPending: number; receivablesOverdue: number; payablesOverdue: number; };
 }
 
-async function fetchDashboardSummary(): Promise<DashboardSummary> {
+async function fetchDashboardSummary(role: string, userId: string): Promise<DashboardSummary> {
   const today = new Date().toISOString().split('T')[0];
+  const isMasterOrDev = role === 'MASTER' || role === 'DEV';
+  const isVendedor = role === 'VENDEDOR';
+  const isFinanceiro = role === 'FINANCEIRO';
+  const isEngenharia = role === 'ENGENHEIRO' || role === 'TECNICO';
 
-  const [{ data: projects }, { data: quotes }, { data: serviceOrders }] = await Promise.all([
-    supabase.from('projects').select('id, status, estimated_end_date'),
-    supabase.from('quotes').select('id, status'),
-    supabase.from('service_orders').select('id, status, deadline_date'),
-  ]);
+  // Performance tuning: only fetch what's needed for the role
+  const queries = [];
 
-  const projectsInProgress = projects?.filter(p => p.status !== 'POS_VENDA') || [];
-  const projectsDelayed = projectsInProgress.filter(p =>
-    p.estimated_end_date && p.estimated_end_date < today
-  );
+  // 0: Projects
+  if (isMasterOrDev || isEngenharia) {
+    queries.push(supabase.from('projects').select('id, status, estimated_end_date'));
+  } else { queries.push(Promise.resolve({ data: [] })); }
 
-  const pendingQuotes = quotes?.filter(q => q.status === 'SENT' || q.status === 'DRAFT') || [];
-  const approvedQuotes = quotes?.filter(q => q.status === 'APPROVED') || [];
+  // 1: Quotes
+  if (isMasterOrDev || isVendedor) {
+    let q = supabase.from('quotes').select('id, status, user_id');
+    if (isVendedor) q = q.eq('user_id', userId);
+    queries.push(q);
+  } else { queries.push(Promise.resolve({ data: [] })); }
 
-  const pendingOS = serviceOrders?.filter(os => os.status !== 'CONCLUIDO' && os.status !== 'CANCELADO') || [];
-  const overdueOS = pendingOS.filter(os =>
-    os.deadline_date && os.deadline_date < today
-  );
+  // 2: Service Orders
+  if (isMasterOrDev || isEngenharia) {
+    queries.push(supabase.from('service_orders').select('id, status, deadline_date'));
+  } else { queries.push(Promise.resolve({ data: [] })); }
+
+  // 3: Financeiro
+  if (isMasterOrDev || isFinanceiro) {
+    queries.push(supabase.from('financial_transactions').select('id, type, status, due_date'));
+  } else { queries.push(Promise.resolve({ data: [] })); }
+
+  const [resProj, resQuotes, resOs, resFin] = await Promise.all(queries);
+
+  // Parse Projects
+  const projects = resProj.data || [];
+  const projInProgress = projects.filter(p => p.status !== 'POS_VENDA');
+  const projDelayed = projInProgress.filter(p => p.estimated_end_date && p.estimated_end_date < today);
+
+  // Parse Quotes
+  const quotes = resQuotes.data || [];
+  const pendingQuotes = quotes.filter(q => q.status === 'SENT' || q.status === 'DRAFT');
+  const approvedQuotes = quotes.filter(q => q.status === 'APPROVED');
+
+  // Parse OS
+  const serviceOrders = resOs.data || [];
+  const pendingOS = serviceOrders.filter(os => os.status !== 'CONCLUIDO' && os.status !== 'CANCELADO');
+  const overdueOS = pendingOS.filter(os => os.deadline_date && os.deadline_date < today);
+
+  // Parse Financial
+  const transactions = resFin.data || [];
+  const receivables = transactions.filter(t => t.type === 'INCOME' && t.status === 'PENDING');
+  const payables = transactions.filter(t => t.type === 'EXPENSE' && t.status === 'PENDING');
+  const receivablesOverdue = receivables.filter(t => t.due_date && t.due_date < today);
+  const payablesOverdue = payables.filter(t => t.due_date && t.due_date < today);
 
   return {
-    projects: {
-      total: projects?.length || 0,
-      inProgress: projectsInProgress.length,
-      delayed: projectsDelayed.length,
-    },
-    quotes: {
-      total: quotes?.length || 0,
-      pending: pendingQuotes.length,
-      approved: approvedQuotes.length,
-    },
-    serviceOrders: {
-      total: serviceOrders?.length || 0,
-      pending: pendingOS.length,
-      overdue: overdueOS.length,
-    },
+    projects: { total: projects.length, inProgress: projInProgress.length, delayed: projDelayed.length },
+    quotes: { total: quotes.length, pending: pendingQuotes.length, approved: approvedQuotes.length },
+    serviceOrders: { total: serviceOrders.length, pending: pendingOS.length, overdue: overdueOS.length },
+    financial: { 
+      receivablesPending: receivables.length, payablesPending: payables.length,
+      receivablesOverdue: receivablesOverdue.length, payablesOverdue: payablesOverdue.length
+    }
   };
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: summary, isLoading: loading } = useQuery({
-    queryKey: ['dashboard-summary'],
-    queryFn: fetchDashboardSummary,
+    queryKey: ['dashboard-summary', user?.id, user?.role],
+    queryFn: () => fetchDashboardSummary(user?.role || '', user?.id || ''),
     staleTime: 5 * 60 * 1000,
+    enabled: !!user?.id
   });
+
+  const isMasterOrDev = user?.role === 'MASTER' || user?.role === 'DEV';
+  const isVendedor = user?.role === 'VENDEDOR';
+  const isFinanceiro = user?.role === 'FINANCEIRO';
+  const isEngenharia = user?.role === 'ENGENHEIRO' || user?.role === 'TECNICO';
 
   if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-impulse-gold" />
         </div>
       </AppLayout>
     );
@@ -89,138 +115,189 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">
-          Olá, {user?.name?.split(' ')[0]}
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
+      {/* Header & Quick Actions */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Olá, {user?.name?.split(' ')[0]} 👋
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        
+        {/* Quick Actions Baseado no Cargo */}
+        <div className="flex flex-wrap gap-3">
+          {(isMasterOrDev || isVendedor) && (
+            <>
+              <Button size="sm" className="bg-impulse-dark/50 border border-white/10 hover:border-impulse-gold hover:text-impulse-gold" onClick={() => navigate('/clients')}>
+                <Users className="h-4 w-4 mr-2" /> Novo Cliente
+              </Button>
+              <Button size="sm" onClick={() => navigate('/quotes')}>
+                <PlusCircle className="h-4 w-4 mr-2" /> Novo Orçamento
+              </Button>
+            </>
+          )}
+
+          {(isMasterOrDev || isFinanceiro) && !isVendedor && (
+            <>
+              <Button size="sm" variant="outline" className="border-success/50 text-success hover:bg-success/10" onClick={() => navigate('/financial/receivables')}>
+                <TrendingUp className="h-4 w-4 mr-2" /> Nova Receita
+              </Button>
+              <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => navigate('/financial/payables')}>
+                <TrendingDown className="h-4 w-4 mr-2" /> Nova Despesa
+              </Button>
+            </>
+          )}
+
+          {(isMasterOrDev || isEngenharia) && !isVendedor && !isFinanceiro && (
+            <>
+              <Button size="sm" onClick={() => navigate('/service-orders')}>
+                <Wrench className="h-4 w-4 mr-2" /> Nova O.S.
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Main Cards */}
+      {/* Main Role-Based Modular Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Projetos */}
-        <Link to="/projects" className="group">
-          <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all hover-lift">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <FolderKanban className="h-5 w-5 text-primary" />
+        
+        {/* Module: Quotes (Vendas) */}
+        {(isMasterOrDev || isVendedor) && (
+          <Link to="/quotes" className="group">
+            <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-impulse-gold/50 transition-all hover-lift">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-impulse-gold/10">
+                  <FileText className="h-5 w-5 text-impulse-gold" />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-impulse-gold transition-colors" />
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <h3 className="text-lg font-semibold text-foreground mb-3">{isVendedor ? 'Meus Orçamentos' : 'Orçamentos (Geral)'}</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Pendentes
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.quotes.pending || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-success flex items-center gap-2">
+                    <CheckCircle className="h-3.5 w-3.5" /> Aprovados
+                  </span>
+                  <span className="font-medium text-success">{summary?.quotes.approved || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <BarChart3 className="h-3.5 w-3.5" /> Total Acumulado
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.quotes.total || 0}</span>
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Projetos</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5" />
-                  Em andamento
-                </span>
-                <span className="font-medium text-foreground">{summary?.projects.inProgress || 0}</span>
+          </Link>
+        )}
+
+        {/* Module: Financas */}
+        {(isMasterOrDev || isFinanceiro) && (
+          <Link to="/financial" className="group">
+            <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-emerald-500/50 transition-all hover-lift">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10">
+                  <DollarSign className="h-5 w-5 text-emerald-500" />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
               </div>
-              {(summary?.projects.delayed || 0) > 0 && (
+              <h3 className="text-lg font-semibold text-foreground mb-3">Financeiro (Títulos Abertos)</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-success flex items-center gap-2">
+                    <TrendingUp className="h-3.5 w-3.5" /> A Receber
+                  </span>
+                  <span className="font-medium text-success">{summary?.financial.receivablesPending || 0} {(summary?.financial.receivablesOverdue || 0) > 0 && <span className="text-destructive text-xs ml-1">({summary?.financial.receivablesOverdue} atrasados)</span>}</span>
+                </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-destructive flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Atrasados
+                    <TrendingDown className="h-3.5 w-3.5" /> A Pagar
                   </span>
-                  <span className="font-medium text-destructive">{summary?.projects.delayed}</span>
+                  <span className="font-medium text-destructive">{summary?.financial.payablesPending || 0} {(summary?.financial.payablesOverdue || 0) > 0 && <span className="text-destructive text-xs ml-1">({summary?.financial.payablesOverdue} atrasados)</span>}</span>
                 </div>
-              )}
-              <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Total
-                </span>
-                <span className="font-medium text-foreground">{summary?.projects.total || 0}</span>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
-        {/* Orçamentos */}
-        <Link to="/quotes" className="group">
-          <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all hover-lift">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 rounded-xl bg-secondary/10">
-                <FileText className="h-5 w-5 text-secondary" />
+        {/* Module: Projetos (Engenharia) */}
+        {(isMasterOrDev || isEngenharia) && (
+          <Link to="/projects" className="group">
+            <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-cyan-500/50 transition-all hover-lift">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-cyan-500/10">
+                  <FolderKanban className="h-5 w-5 text-cyan-500" />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Orçamentos</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5" />
-                  Pendentes
-                </span>
-                <span className="font-medium text-foreground">{summary?.quotes.pending || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-success flex items-center gap-2">
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Aprovados
-                </span>
-                <span className="font-medium text-success">{summary?.quotes.approved || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5" />
-                  Total
-                </span>
-                <span className="font-medium text-foreground">{summary?.quotes.total || 0}</span>
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Ordens de Serviço */}
-        <Link to="/service-orders" className="group">
-          <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all hover-lift">
-            <div className="flex items-center justify-between mb-4">
-              <div className={cn(
-                "p-2.5 rounded-xl",
-                (summary?.serviceOrders.overdue || 0) > 0 ? "bg-destructive/10" : "bg-warning/10"
-              )}>
-                <Wrench className={cn(
-                  "h-5 w-5",
-                  (summary?.serviceOrders.overdue || 0) > 0 ? "text-destructive" : "text-warning"
-                )} />
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Ordens de Serviço</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5" />
-                  Pendentes
-                </span>
-                <span className="font-medium text-foreground">{summary?.serviceOrders.pending || 0}</span>
-              </div>
-              {(summary?.serviceOrders.overdue || 0) > 0 && (
+              <h3 className="text-lg font-semibold text-foreground mb-3">Projetos Executivos</h3>
+              <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-destructive flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Vencidas
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Em andamento
                   </span>
-                  <span className="font-medium text-destructive">{summary?.serviceOrders.overdue}</span>
+                  <span className="font-medium text-foreground">{summary?.projects.inProgress || 0}</span>
                 </div>
-              )}
-              <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Wrench className="h-3.5 w-3.5" />
-                  Total
-                </span>
-                <span className="font-medium text-foreground">{summary?.serviceOrders.total || 0}</span>
+                {(summary?.projects.delayed || 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Atrasados
+                    </span>
+                    <span className="font-medium text-destructive">{summary?.projects.delayed}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <CheckCircle className="h-3.5 w-3.5" /> Total
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.projects.total || 0}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )}
+
+        {/* Module: Ordens de Servico (Engenharia) */}
+        {(isMasterOrDev || isEngenharia) && (
+          <Link to="/service-orders" className="group">
+            <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all hover-lift">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn("p-2.5 rounded-xl", (summary?.serviceOrders.overdue || 0) > 0 ? "bg-destructive/10" : "bg-primary/10")}>
+                  <Wrench className={cn("h-5 w-5", (summary?.serviceOrders.overdue || 0) > 0 ? "text-destructive" : "text-primary")} />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-3">Ordens de Serviço</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Pendentes
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.serviceOrders.pending || 0}</span>
+                </div>
+                {(summary?.serviceOrders.overdue || 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Vencidas
+                    </span>
+                    <span className="font-medium text-destructive">{summary?.serviceOrders.overdue}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Link>
+        )}
+        
       </div>
 
-      {/* Alerts */}
+      {/* Smart Alerts Layer */}
       <SmartAlerts />
     </AppLayout>
   );
