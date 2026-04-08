@@ -98,6 +98,15 @@ export default function FinancialReceivables() {
     queryFn: clientService.getAll,
   });
 
+  // Handle URL params for auto-opening modal
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === 'true') {
+      setIsDialogOpen(true);
+      window.history.replaceState({}, '', '/financial/receivables');
+    }
+  }, []);
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: (args: { data: CreateTransactionData, installments: number }): Promise<any> => 

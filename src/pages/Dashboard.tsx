@@ -130,10 +130,10 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-3">
           {(isMasterOrDev || isVendedor) && (
             <>
-              <Button size="sm" className="bg-impulse-dark/50 border border-white/10 hover:border-impulse-gold hover:text-impulse-gold" onClick={() => navigate('/clients')}>
+              <Button size="sm" onClick={() => navigate('/clients?new=true')}>
                 <Users className="h-4 w-4 mr-2" /> Novo Cliente
               </Button>
-              <Button size="sm" onClick={() => navigate('/quotes')}>
+              <Button size="sm" onClick={() => navigate('/quotes?new=true')}>
                 <PlusCircle className="h-4 w-4 mr-2" /> Novo Orçamento
               </Button>
             </>
@@ -141,10 +141,10 @@ export default function Dashboard() {
 
           {(isMasterOrDev || isFinanceiro) && !isVendedor && (
             <>
-              <Button size="sm" variant="outline" className="border-success/50 text-success hover:bg-success/10" onClick={() => navigate('/financial/receivables')}>
+              <Button size="sm" onClick={() => navigate('/financial/receivables?new=true')}>
                 <TrendingUp className="h-4 w-4 mr-2" /> Nova Receita
               </Button>
-              <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => navigate('/financial/payables')}>
+              <Button size="sm" onClick={() => navigate('/financial/payables?new=true')}>
                 <TrendingDown className="h-4 w-4 mr-2" /> Nova Despesa
               </Button>
             </>
@@ -152,7 +152,7 @@ export default function Dashboard() {
 
           {(isMasterOrDev || isEngenharia) && !isVendedor && !isFinanceiro && (
             <>
-              <Button size="sm" onClick={() => navigate('/service-orders')}>
+              <Button size="sm" onClick={() => navigate('/service-orders?new=true')}>
                 <Wrench className="h-4 w-4 mr-2" /> Nova O.S.
               </Button>
             </>
