@@ -59,6 +59,7 @@ export function FeatureFlagManager() {
         { key: "MODULE_DRONE_ENABLED", desc: "Habilita/Desabilita o módulo de Drones" },
         { key: "MODULE_EMPLOYEES_ENABLED", desc: "Habilita/Desabilita o módulo de Funcionários" },
         { key: "MODULE_SETTINGS_ENABLED", desc: "Habilita/Desabilita o módulo de Configurações" },
+        { key: "MODULE_PWA_ENABLED", desc: "Habilita/Desabilita o PWA (App Instalável e Offline)" },
       ];
 
       // Get current keys to avoid duplicates

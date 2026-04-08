@@ -18,10 +18,12 @@ import { FeatureFlagManager } from "@/components/dev/FeatureFlagManager";
 import { UserImpersonator } from "@/components/dev/UserImpersonator";
 import { AnnouncementPanel } from "@/components/dev/AnnouncementPanel";
 import { UserPresenceBoard } from "@/components/dev/UserPresenceBoard";
+import { PwaSettings } from "@/components/dev/PwaSettings";
 import { apiSettingsService, ApiSetting, ApiSettingInput } from "@/services/apiSettingsService";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
   { value: "maps", label: "Mapas", icon: Map },
@@ -168,6 +170,7 @@ export default function DevSettings() {
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
             <TabsTrigger value="announcements">Comunicados</TabsTrigger>
             <TabsTrigger value="presence">👥 Usuários Online</TabsTrigger>
+            <TabsTrigger value="pwa">📱 PWA & Mobile</TabsTrigger>
             <TabsTrigger value="impersonate">Simulação</TabsTrigger>
             {CATEGORIES.map((cat) => (
               <TabsTrigger key={cat.value} value={cat.value}>
@@ -222,6 +225,10 @@ export default function DevSettings() {
                 <UserPresenceBoard />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="pwa">
+            <PwaSettings />
           </TabsContent>
 
           <TabsContent value="impersonate">

@@ -14,7 +14,8 @@ export default defineConfig(({ mode }) => ({
     react(), 
     mode === "development" && componentTagger(),
     VitePWA({
-      disable: true, // Keep it inactive for now as requested
+      disable: false, // Now always enabled at build time
+      injectRegister: null, // We will register manually via code
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'pwa-icon.png'],
       manifest: {
