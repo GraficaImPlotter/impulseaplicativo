@@ -99,6 +99,16 @@ export default function Settings() {
     loadData();
   }, [loadData]);
 
+  // Handle automatic modal opening via query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new_user') === 'true') {
+      setIsNewUserDialogOpen(true);
+      // Clean up the URL
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, []);
+
 
 
   const handleCompanyChange = (field: keyof CompanySettings, value: string) => {

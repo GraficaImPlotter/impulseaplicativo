@@ -67,9 +67,9 @@ export function CommandPalette() {
       const [clientsRes, projectsRes, soRes] = await Promise.all([
         supabase
           .from("clients")
-          .select("id, name")
-          .ilike("name", `%${search}%`)
-          .limit(5),
+          .select("id, name, document")
+          .or(`name.ilike.%${search}%,document.ilike.%${search}%`)
+          .limit(8),
         supabase
           .from("projects")
           .select("id, client:clients(name)")
@@ -137,13 +137,18 @@ export function CommandPalette() {
         {results.clients.length > 0 && (
           <CommandGroup heading="Clientes">
             {results.clients.map((client) => (
-              <CommandItem
-                key={client.id}
-                onSelect={() => runCommand(() => navigate(`/clients?id=${client.id}`))}
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>{client.name}</span>
-              </CommandItem>
+                <CommandItem
+                  key={client.id}
+                  onSelect={() => runCommand(() => navigate(`/clients?id=${client.id}`))}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span>{client.name}</span>
+                    {client.document && (
+                      <span className="text-xs text-muted-foreground">{client.document}</span>
+                    )}
+                  </div>
+                </CommandItem>
             ))}
           </CommandGroup>
         )}
@@ -180,12 +185,16 @@ export function CommandPalette() {
         
         <CommandGroup heading="Ações Rápidas">
           <CommandItem onSelect={() => runCommand(() => navigate("/clients?new=true"))}>
-            <Plus className="mr-2 h-4 w-4 text-success" />
+            <Plus className="mr-2 h-4 w-4 text-emerald-500" />
             <span>Novo Cliente</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => navigate("/quotes?new=true"))}>
-            <Plus className="mr-2 h-4 w-4 text-success" />
+            <Plus className="mr-2 h-4 w-4 text-emerald-500" />
             <span>Novo Orçamento</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate("/settings?new_user=true"))}>
+            <User className="mr-2 h-4 w-4 text-purple-500" />
+            <span>Novo Usuário / Funcionário</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => logout())}>
             <LogOut className="mr-2 h-4 w-4 text-destructive" />
