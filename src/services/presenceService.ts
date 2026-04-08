@@ -99,28 +99,32 @@ export const presenceService = {
     });
   },
 
-  /**
-   * Subscribe to presence state changes (for the DEV panel).
-   */
   subscribeToPresence(onChange: (users: UserPresence[]) => void) {
     const channel = supabase.channel(PRESENCE_CHANNEL);
 
+    const handlePresenceChange = () => {
+      const state = channel.presenceState<UserPresence>();
+      
+      // Para cada chave (usuário), pode haver múltiplas abas (array de presenças).
+      // Pegamos apenas a atividade (aba) mais recente daquele usuário.
+      const uniqueUsers = Object.values(state).map((presences) => {
+        return presences.sort(
+          (a, b) => new Date(b.onlineAt).getTime() - new Date(a.onlineAt).getTime()
+        )[0];
+      });
+
+      // Ordena o quadro de usuários para os que tiveram interação mais recente ficarem no topo
+      uniqueUsers.sort(
+        (a, b) => new Date(b.onlineAt).getTime() - new Date(a.onlineAt).getTime()
+      );
+
+      onChange(uniqueUsers);
+    };
+
     channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<UserPresence>();
-        const users = Object.values(state).flatMap((arr) => arr as UserPresence[]);
-        onChange(users);
-      })
-      .on("presence", { event: "join" }, () => {
-        const state = channel.presenceState<UserPresence>();
-        const users = Object.values(state).flatMap((arr) => arr as UserPresence[]);
-        onChange(users);
-      })
-      .on("presence", { event: "leave" }, () => {
-        const state = channel.presenceState<UserPresence>();
-        const users = Object.values(state).flatMap((arr) => arr as UserPresence[]);
-        onChange(users);
-      })
+      .on("presence", { event: "sync" }, handlePresenceChange)
+      .on("presence", { event: "join" }, handlePresenceChange)
+      .on("presence", { event: "leave" }, handlePresenceChange)
       .subscribe();
 
     return () => {
