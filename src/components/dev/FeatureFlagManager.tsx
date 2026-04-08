@@ -42,16 +42,36 @@ export function FeatureFlagManager() {
 
   const createInitialFlags = async () => {
     try {
-      // Create a default flag for Demo
-      await apiSettingsService.create({
-        key: "MODULE_DRONE_ENABLED",
-        value: "true",
-        description: "Habilita/Desabilita o módulo de drones no menu",
-        category: "feature_flag"
-      });
+      const initialFlags = [
+        { key: "MODULE_AGENDA_ENABLED", desc: "Habilita/Desabilita o módulo de Agenda" },
+        { key: "MODULE_CALCULATOR_ENABLED", desc: "Habilita/Desabilita a Calculadora Solar" },
+        { key: "MODULE_FUNNEL_ENABLED", desc: "Habilita/Desabilita o Funil de Vendas" },
+        { key: "MODULE_CLIENTS_ENABLED", desc: "Habilita/Desabilita o módulo de Clientes" },
+        { key: "MODULE_QUOTES_ENABLED", desc: "Habilita/Desabilita o módulo de Orçamentos" },
+        { key: "MODULE_PROJECTS_ENABLED", desc: "Habilita/Desabilita o módulo de Projetos" },
+        { key: "MODULE_SERVICE_ORDERS_ENABLED", desc: "Habilita/Desabilita o módulo de Ordens de Serviço (OS)" },
+        { key: "MODULE_SUPPLIERS_ENABLED", desc: "Habilita/Desabilita o módulo de Fornecedores" },
+        { key: "MODULE_INVENTORY_ENABLED", desc: "Habilita/Desabilita o módulo de Estoque" },
+        { key: "MODULE_FINANCIAL_ENABLED", desc: "Habilita/Desabilita o módulo Financeiro" },
+        { key: "MODULE_SALES_ENABLED", desc: "Habilita/Desabilita o módulo de Vendas" },
+        { key: "MODULE_DRONE_ENABLED", desc: "Habilita/Desabilita o módulo de Drones" },
+        { key: "MODULE_EMPLOYEES_ENABLED", desc: "Habilita/Desabilita o módulo de Funcionários" },
+        { key: "MODULE_SETTINGS_ENABLED", desc: "Habilita/Desabilita o módulo de Configurações" },
+      ];
+
+      for (const flag of initialFlags) {
+        await apiSettingsService.create({
+          key: flag.key,
+          value: "true",
+          description: flag.desc,
+          category: "feature_flag"
+        });
+      }
+      
       loadFlags();
+      toast({ title: "Todas as flags foram criadas" });
     } catch (error) {
-      toast({ title: "Erro ao criar flag inicial", variant: "destructive" });
+      toast({ title: "Erro ao criar flags iniciais", variant: "destructive" });
     }
   };
 
