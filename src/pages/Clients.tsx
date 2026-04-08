@@ -72,15 +72,24 @@ export default function Clients() {
     loadData();
   }, [loadData]);
 
-  // Handle automatic modal opening via query params
+  // Handle automatic modal or detail sheet opening via query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('new') === 'true') {
+    const newParam = params.get('new');
+    const idParam = params.get('id');
+
+    if (newParam === 'true') {
       handleOpenModal();
-      // Clean up the URL to prevent reopening on refresh
       window.history.replaceState({}, '', '/clients');
+    } else if (idParam && !isLoading && clients.length > 0) {
+      const client = clients.find(c => c.id === idParam);
+      if (client) {
+        handleOpenClientDetail(client);
+        // Clean up the URL
+        window.history.replaceState({}, '', '/clients');
+      }
     }
-  }, []);
+  }, [isLoading, clients]);
 
   const handleOpenModal = (client?: ClientWithExtras) => {
     if (client) {
