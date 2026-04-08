@@ -2,9 +2,21 @@ import { useEffect, useState } from "react";
 import { presenceService, UserPresence } from "@/services/presenceService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, RefreshCw } from "lucide-react";
+import { Users, Clock, RefreshCw, Send, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useAuth } from "@/hooks/use-auth";
+import { directMessageService } from "@/services/directMessageService";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const ROLE_COLORS: Record<string, string> = {
   MASTER: "bg-red-500/20 text-red-400 border-red-500/40",
@@ -44,6 +56,12 @@ export function UserPresenceBoard() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user: myUser } = useAuth();
+  
+  // Direct Message states
+  const [selectedUser, setSelectedUser] = useState<UserPresence | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     const unsubscribe = presenceService.subscribeToPresence((activeUsers) => {
@@ -57,6 +75,28 @@ export function UserPresenceBoard() {
     setIsRefreshing(true);
     setRefreshKey(prev => prev + 1);
     setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const handleSendMessage = async () => {
+    if (!myUser || !selectedUser || !messageText.trim()) return;
+    
+    setIsSending(true);
+    try {
+      await directMessageService.sendMessage({
+        fromUserId: myUser.id,
+        fromUserName: myUser.name,
+        toUserId: selectedUser.userId,
+        message: messageText.trim(),
+        timestamp: new Date().toISOString()
+      });
+      toast.success(`Mensagem enviada para ${selectedUser.name}!`);
+      setSelectedUser(null);
+      setMessageText("");
+    } catch (err) {
+      toast.error("Erro ao enviar mensagem.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -143,15 +183,29 @@ export function UserPresenceBoard() {
                   </div>
 
                   {/* Online duration */}
-                  <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>
-                      Online{" "}
-                      {formatDistanceToNow(new Date(user.joinedAt), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })}
-                    </span>
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>
+                        Online{" "}
+                        {formatDistanceToNow(new Date(user.joinedAt), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </span>
+                    </div>
+
+                    {myUser?.id !== user.userId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs px-2 hover:bg-impulse-gold/10 hover:text-impulse-gold"
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                        Avisar
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -164,6 +218,51 @@ export function UserPresenceBoard() {
         Os dados são atualizados em tempo real via Supabase Realtime Presence.
         Nenhuma informação é armazenada no banco de dados.
       </p>
+
+      {/* DM Modal */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-md glassmorphism border-white/10">
+          <DialogHeader>
+            <DialogTitle>Enviar mensagem para {selectedUser?.name}</DialogTitle>
+            <DialogDescription>
+              Mensagem em tempo-real. Funciona como um aviso direto e não é salvo no banco de dados.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Digite seu aviso..."
+              className="min-h-[100px] resize-none bg-white/5 border-white/10 focus:border-impulse-gold"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSelectedUser(null)} className="text-white/70 hover:text-white">
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={!messageText.trim() || isSending}
+              className="gradient-gold text-impulse-dark"
+            >
+              {isSending ? "Enviando..." : (
+                <>
+                  <Send className="mr-2 h-4 w-4" /> Enviar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

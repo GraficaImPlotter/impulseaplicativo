@@ -5,6 +5,7 @@ import { AnnouncementWatcher } from './AnnouncementWatcher';
 import { PresenceTracker } from './PresenceTracker';
 import { PwaHandler } from '../dev/PwaHandler';
 import { OfflineSyncWatcher } from './OfflineSyncWatcher';
+import { DirectMessageWatcher } from './DirectMessageWatcher';
 
 import { MobileHeader } from './MobileHeader';
 import { BottomNav } from './BottomNav';
@@ -26,6 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <PresenceTracker />
       <PwaHandler />
       <OfflineSyncWatcher />
+      <DirectMessageWatcher />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
         {/* Mobile Top Header */}
