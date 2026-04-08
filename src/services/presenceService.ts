@@ -103,7 +103,7 @@ export const presenceService = {
    * Subscribe to presence state changes (for the DEV panel).
    */
   subscribeToPresence(onChange: (users: UserPresence[]) => void) {
-    const channel = supabase.channel(PRESENCE_CHANNEL + "-observer");
+    const channel = supabase.channel(PRESENCE_CHANNEL);
 
     channel
       .on("presence", { event: "sync" }, () => {

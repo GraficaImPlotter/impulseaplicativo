@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { presenceService, UserPresence } from "@/services/presenceService";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Users, Clock, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,6 +42,8 @@ function getAvatarColor(userId: string): string {
 export function UserPresenceBoard() {
   const [users, setUsers] = useState<UserPresence[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = presenceService.subscribeToPresence((activeUsers) => {
@@ -48,7 +51,13 @@ export function UserPresenceBoard() {
       setLastUpdated(new Date());
     });
     return () => unsubscribe();
-  }, []);
+  }, [refreshKey]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setRefreshKey(prev => prev + 1);
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   return (
     <div className="space-y-6">
@@ -62,6 +71,15 @@ export function UserPresenceBoard() {
           <span className="text-sm text-muted-foreground">
             Atualizado {formatDistanceToNow(lastUpdated, { addSuffix: true, locale: ptBR })}
           </span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={`h-8 w-8 text-muted-foreground hover:text-primary transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5">
           <Users className="h-4 w-4 text-emerald-500" />
