@@ -2,8 +2,40 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+import { offlineDB } from '@/lib/offline-db';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Fetch Wrapper offline
+const customOfflineFetch = async (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
+  const method = options?.method || 'GET';
+  const isOnline = window.navigator.onLine;
+
+  if (isOnline || method === 'GET') {
+    return fetch(url, options);
+  }
+
+  // OFFLINE & MUTATION
+  console.log('[Offline] Intercepting request:', method, url);
+  
+  const body = options?.body ? options.body.toString() : null;
+  const urlString = url.toString();
+  
+  // Save to IndexedDB (without sensitive auth headers to prevent expire, sync will handle it)
+  await offlineDB.enqueueRequest({
+    url: urlString,
+    method,
+    body,
+    headers: {}, // Do not store old headers, Sync hook will rebuild them!
+  });
+
+  // Mock Success Response to keep App flow
+  return new Response(JSON.stringify([{ id: 'offline-fake-id', status: 'saved_offline' }]), { 
+    status: 200, 
+    headers: { 'Content-Type': 'application/json' } 
+  });
+};
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -13,5 +45,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  },
+  global: {
+    fetch: customOfflineFetch
   }
 });
