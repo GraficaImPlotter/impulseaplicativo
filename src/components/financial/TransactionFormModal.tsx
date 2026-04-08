@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, HelpCircle, Info, Calculator, Check } from 'lucide-react';
+import { Plus, Trash2, HelpCircle, Info, Calculator, Check, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { clientService } from '@/services/clientService';
 import { supplierService } from '@/services/supplierService';
@@ -26,9 +26,10 @@ interface TransactionFormModalProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateTransactionData, installments: number) => void;
   transaction?: Transaction | null;
+  isLoading?: boolean;
 }
 
-export function TransactionFormModal({ type, open, onOpenChange, onSubmit, transaction }: TransactionFormModalProps) {
+export function TransactionFormModal({ type, open, onOpenChange, onSubmit, transaction, isLoading }: TransactionFormModalProps) {
   const [formData, setFormData] = useState<CreateTransactionData & { installments: number }>({
     type,
     description: '',
@@ -39,7 +40,7 @@ export function TransactionFormModal({ type, open, onOpenChange, onSubmit, trans
     cost_center: '',
     payment_method: 'Pix',
     reference_code: '',
-    account_id: '',
+    account_id: undefined,
     notes: '',
     status: 'PENDENTE',
     installments: 1,
@@ -158,7 +159,16 @@ export function TransactionFormModal({ type, open, onOpenChange, onSubmit, trans
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData, formData.installments);
+    
+    // Clean-up IDs that might be empty strings to avoid DB errors (Invalid UUID)
+    const cleanedData = { ...formData };
+    if (!cleanedData.client_id) delete (cleanedData as any).client_id;
+    if (!cleanedData.supplier_id) delete (cleanedData as any).supplier_id;
+    if (!cleanedData.project_id) delete (cleanedData as any).project_id;
+    if (!cleanedData.account_id) delete (cleanedData as any).account_id;
+    if (!cleanedData.parent_id) delete (cleanedData as any).parent_id;
+
+    onSubmit(cleanedData, formData.installments);
   };
 
   const categories = type === 'RECEITA' ? FINANCIAL_CATEGORIES.RECEITA : FINANCIAL_CATEGORIES.DESPESA;
@@ -497,9 +507,17 @@ export function TransactionFormModal({ type, open, onOpenChange, onSubmit, trans
           </div>
 
           <DialogFooter className="p-6 bg-white dark:bg-slate-800 border-t flex items-center justify-between sm:justify-between flex-shrink-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-6">Voltar</Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-10 h-11 text-lg font-bold">
-                Salvar
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-6" disabled={isLoading}>
+                Voltar
+            </Button>
+            <Button 
+                type="submit" 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-10 h-11 text-lg font-bold min-w-[140px]"
+                disabled={isLoading}
+            >
+                {isLoading ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : 'Salvar'}
             </Button>
           </DialogFooter>
         </form>

@@ -110,6 +110,10 @@ export default function FinancialPayables() {
       setIsDialogOpen(false);
       setEditingTransaction(null);
     },
+    onError: (error: any) => {
+      console.error('Create error:', error);
+      toast.error('Erro ao criar lançamento: ' + (error.message || 'Erro desconhecido'));
+    }
   });
 
   const updateMutation = useMutation({
@@ -121,6 +125,10 @@ export default function FinancialPayables() {
       setIsDialogOpen(false);
       setEditingTransaction(null);
     },
+    onError: (error: any) => {
+      console.error('Update error:', error);
+      toast.error('Erro ao atualizar: ' + (error.message || 'Erro desconhecido'));
+    }
   });
 
   const deleteMutation = useMutation({
@@ -225,6 +233,7 @@ export default function FinancialPayables() {
                 onOpenChange={setIsDialogOpen}
                 transaction={editingTransaction}
                 onSubmit={handleModalSubmit}
+                isLoading={createMutation.isPending || updateMutation.isPending}
             />
             <ExportFinancialDialog 
                 open={isExportDialogOpen}
