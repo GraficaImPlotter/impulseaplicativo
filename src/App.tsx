@@ -2,7 +2,9 @@ import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -34,16 +36,20 @@ const ServiceOrders = lazy(() => import("./pages/ServiceOrders"));
 const DroneServices = lazy(() => import("./pages/DroneServices"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// ── QueryClient with global cache defaults ──────────────────────
+// ── Offline Persistence Configuration ──────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000,      // 2 min — avoid redundant refetches
-      gcTime: 10 * 60 * 1000,         // 10 min — keep in cache
-      retry: 1,                        // Only 1 retry instead of 3
-      refetchOnWindowFocus: false,     // Don't refetch on tab focus
+      staleTime: 5 * 60 * 1000,       // 5 min
+      gcTime: 24 * 60 * 60 * 1000,    // 24 hours (keep data offline for a long time)
+      retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
+});
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
 });
 
 // ── Page loading fallback ───────────────────────────────────────
@@ -54,7 +60,10 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider 
+    client={queryClient}
+    persistOptions={{ persister }}
+  >
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -93,7 +102,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
