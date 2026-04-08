@@ -40,35 +40,70 @@ interface NavItem {
   children?: { title: string; href: string }[];
 }
 
-const navItems: NavItem[] = [
-  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'Minha Área', href: '/my-area', icon: Briefcase },
-  { title: 'Agenda', href: '/agenda', icon: Calendar, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_AGENDA_ENABLED' },
-  { title: 'Calculadora', href: '/calculator', icon: Calculator, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_CALCULATOR_ENABLED' },
-  { title: 'Funil', href: '/funnel', icon: Filter, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_FUNNEL_ENABLED' },
-  { title: 'Clientes', href: '/clients', icon: Users, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_CLIENTS_ENABLED' },
-  { title: 'Orçamentos', href: '/quotes', icon: FileText, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_QUOTES_ENABLED' },
-  { title: 'Projetos', href: '/projects', icon: FolderKanban, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_PROJECTS_ENABLED' },
-  { title: 'OS', href: '/service-orders', icon: ClipboardList, flag: 'MODULE_SERVICE_ORDERS_ENABLED' },
-  { title: 'Fornecedores', href: '/suppliers', icon: Building2, roles: ['MASTER', 'DEV'], flag: 'MODULE_SUPPLIERS_ENABLED' },
-  { title: 'Estoque', href: '/inventory', icon: Package, roles: ['MASTER', 'DEV', 'COMPRAS'], flag: 'MODULE_INVENTORY_ENABLED' },
-  { 
-    title: 'Financeiro', 
-    href: '/financial', 
-    icon: DollarSign, 
-    roles: ['MASTER', 'DEV', 'FINANCEIRO'],
-    flag: 'MODULE_FINANCIAL_ENABLED',
-    children: [
-      { title: 'Contas a Receber', href: '/financial/receivables' },
-      { title: 'Contas a Pagar', href: '/financial/payables' },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'GERAL',
+    items: [
+      { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     ]
   },
-  { title: 'Vendas', href: '/sales', icon: ShoppingCart, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'FINANCEIRO', 'COMPRAS'], flag: 'MODULE_SALES_ENABLED' },
-  { title: 'Drone', href: '/drone', icon: Plane, roles: ['DEV'], flag: 'MODULE_DRONE_ENABLED' },
-  { title: 'Meu Perfil', href: '/my-profile', icon: User },
-  { title: 'Funcionários', href: '/employees', icon: Users, roles: ['MASTER', 'DEV'], flag: 'MODULE_EMPLOYEES_ENABLED' },
-  { title: 'Configurações', href: '/settings', icon: Settings, roles: ['MASTER', 'DEV'], flag: 'MODULE_SETTINGS_ENABLED' },
-  { title: 'Área DEV', href: '/dev', icon: Code, roles: ['DEV'] },
+  {
+    label: 'UTILIDADES',
+    items: [
+      { title: 'Calculadora', href: '/calculator', icon: Calculator, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_CALCULATOR_ENABLED' },
+      { title: 'Drone', href: '/drone', icon: Plane, roles: ['DEV'], flag: 'MODULE_DRONE_ENABLED' },
+    ]
+  },
+  {
+    label: 'MEU ESPAÇO',
+    items: [
+      { title: 'Meu Perfil', href: '/my-profile', icon: User },
+      { title: 'Minha Área', href: '/my-area', icon: Briefcase },
+      { title: 'Agenda', href: '/agenda', icon: Calendar, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_AGENDA_ENABLED' },
+    ]
+  },
+  {
+    label: 'VENDAS & CLIENTES',
+    items: [
+      { title: 'Clientes', href: '/clients', icon: Users, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_CLIENTS_ENABLED' },
+      { title: 'Funil', href: '/funnel', icon: Filter, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_FUNNEL_ENABLED' },
+      { title: 'Orçamentos', href: '/quotes', icon: FileText, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_QUOTES_ENABLED' },
+      { title: 'Projetos', href: '/projects', icon: FolderKanban, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'DEV', 'FINANCEIRO', 'POS_VENDA', 'COMPRAS'], flag: 'MODULE_PROJECTS_ENABLED' },
+      { title: 'OS', href: '/service-orders', icon: ClipboardList, flag: 'MODULE_SERVICE_ORDERS_ENABLED' },
+      { title: 'Vendas', href: '/sales', icon: ShoppingCart, roles: ['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'FINANCEIRO', 'COMPRAS'], flag: 'MODULE_SALES_ENABLED' },
+    ]
+  },
+  {
+    label: 'FINANÇAS & PRODUTOS',
+    items: [
+      {
+        title: 'Financeiro',
+        href: '/financial',
+        icon: DollarSign,
+        roles: ['MASTER', 'DEV', 'FINANCEIRO'],
+        flag: 'MODULE_FINANCIAL_ENABLED',
+        children: [
+          { title: 'Contas a Receber', href: '/financial/receivables' },
+          { title: 'Contas a Pagar', href: '/financial/payables' },
+        ]
+      },
+      { title: 'Fornecedores', href: '/suppliers', icon: Building2, roles: ['MASTER', 'DEV'], flag: 'MODULE_SUPPLIERS_ENABLED' },
+      { title: 'Estoque', href: '/inventory', icon: Package, roles: ['MASTER', 'DEV', 'COMPRAS'], flag: 'MODULE_INVENTORY_ENABLED' },
+    ]
+  },
+  {
+    label: 'GESTÃO & DADOS',
+    items: [
+      { title: 'Configurações', href: '/settings', icon: Settings, roles: ['MASTER', 'DEV'], flag: 'MODULE_SETTINGS_ENABLED' },
+      { title: 'Funcionários', href: '/employees', icon: Users, roles: ['MASTER', 'DEV'], flag: 'MODULE_EMPLOYEES_ENABLED' },
+      { title: 'Área DEV', href: '/dev', icon: Code, roles: ['DEV'] },
+    ]
+  }
 ];
 
 export function AppSidebar() {
@@ -92,13 +127,16 @@ export function AppSidebar() {
   const isImpersonating = user?.id !== realUser?.id;
 
 
-  const filteredNavItems = navItems.filter(
-    (item) => {
-      const roleAllowed = !item.roles || hasRole(item.roles);
-      const flagAllowed = !item.flag || flags[item.flag] !== false; // Default to true if flag not found yet
-      return roleAllowed && flagAllowed;
-    }
-  );
+  const filteredGroups = navGroups.map(group => {
+    return {
+      ...group,
+      items: group.items.filter((item) => {
+        const roleAllowed = !item.roles || hasRole(item.roles);
+        const flagAllowed = !item.flag || flags[item.flag] !== false; // Default to true if flag not found yet
+        return roleAllowed && flagAllowed;
+      })
+    };
+  }).filter(group => group.items.length > 0);
 
   return (
     <aside
@@ -116,7 +154,7 @@ export function AppSidebar() {
       <div className="flex items-center justify-center p-8 border-b border-white/5 relative z-10">
         {collapsed ? (
           <div className="h-10 w-10 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10 hover-lift active:scale-95 transition-all">
-             <Sun className="h-6 w-6 text-impulse-gold" />
+            <Sun className="h-6 w-6 text-impulse-gold" />
           </div>
         ) : (
           <img src={logoImpulse} alt="Impulse" className="h-14 object-contain animate-float" />
@@ -124,17 +162,68 @@ export function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-8 px-5 space-y-3 overflow-y-auto scrollbar-none relative z-10">
-        {filteredNavItems.map((item) => {
-          const isActive = location.pathname === item.href || (item.children && location.pathname.startsWith(item.href));
-          
-          if (item.children && !collapsed) {
-            return (
-              <div key={item.href} className="space-y-2">
+      <nav className="flex-1 py-8 px-5 space-y-1 overflow-y-auto scrollbar-none relative z-10 w-full flex flex-col gap-1">
+        {filteredGroups.map((group, groupIdx) => (
+          <div key={group.label} className={cn("flex flex-col gap-1 w-full", groupIdx > 0 && "mt-6")}>
+            {!collapsed && (
+              <h4 className="px-5 mb-1 text-[10px] font-black tracking-widest text-white/30 uppercase">
+                {group.label}
+              </h4>
+            )}
+
+            {group.items.map((item) => {
+              const isActive = location.pathname === item.href || (item.children && location.pathname.startsWith(item.href));
+
+              if (item.children && !collapsed) {
+                return (
+                  <div key={item.href} className="space-y-1">
+                    <NavLink
+                      to={item.href}
+                      className={cn(
+                        'flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden',
+                        isActive
+                          ? 'bg-impulse-gold text-impulse-dark font-semibold shadow-gold'
+                          : 'text-sidebar-foreground hover:bg-white/5 hover-lift'
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
+                          isActive ? 'text-impulse-dark' : 'text-impulse-gold'
+                        )}
+                      />
+                      <span className="text-sm tracking-tight">{item.title}</span>
+                    </NavLink>
+
+                    <div className="pl-14 space-y-1 border-l border-white/5 ml-7">
+                      {item.children.map((child) => {
+                        const isChildActive = location.pathname === child.href;
+                        return (
+                          <NavLink
+                            key={child.href}
+                            to={child.href}
+                            className={cn(
+                              'block py-2 text-[13px] transition-all duration-300 hover:translate-x-1',
+                              isChildActive
+                                ? 'text-impulse-gold font-semibold'
+                                : 'text-sidebar-foreground/50 hover:text-impulse-gold'
+                            )}
+                          >
+                            {child.title}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
                 <NavLink
+                  key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden',
+                    'flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 group relative',
                     isActive
                       ? 'bg-impulse-gold text-impulse-dark font-semibold shadow-gold'
                       : 'text-sidebar-foreground hover:bg-white/5 hover-lift'
@@ -146,58 +235,17 @@ export function AppSidebar() {
                       isActive ? 'text-impulse-dark' : 'text-impulse-gold'
                     )}
                   />
-                  <span className="text-sm tracking-tight">{item.title}</span>
+                  {!collapsed && (
+                    <span className="text-sm tracking-tight">{item.title}</span>
+                  )}
+                  {isActive && !collapsed && (
+                    <div className="absolute right-4 w-1.5 h-1.5 bg-impulse-dark rounded-full" />
+                  )}
                 </NavLink>
-                
-                <div className="pl-14 space-y-1.5 border-l border-white/5 ml-7">
-                  {item.children.map((child) => {
-                    const isChildActive = location.pathname === child.href;
-                    return (
-                      <NavLink
-                        key={child.href}
-                        to={child.href}
-                        className={cn(
-                          'block py-2.5 text-[13px] transition-all duration-300 hover:translate-x-1',
-                          isChildActive 
-                            ? 'text-impulse-gold font-semibold' 
-                            : 'text-sidebar-foreground/50 hover:text-impulse-gold'
-                        )}
-                      >
-                        {child.title}
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative',
-                isActive
-                  ? 'bg-impulse-gold text-impulse-dark font-semibold shadow-gold'
-                  : 'text-sidebar-foreground hover:bg-white/5 hover-lift'
-              )}
-            >
-              <item.icon
-                className={cn(
-                  'h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110',
-                  isActive ? 'text-impulse-dark' : 'text-impulse-gold'
-                )}
-              />
-              {!collapsed && (
-                <span className="text-sm tracking-tight">{item.title}</span>
-              )}
-              {isActive && !collapsed && (
-                <div className="absolute right-4 w-1.5 h-1.5 bg-impulse-dark rounded-full" />
-              )}
-            </NavLink>
-          );
-        })}
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* User Section */}
@@ -206,7 +254,7 @@ export function AppSidebar() {
           <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-500 text-[10px] text-center">
             <p className="font-bold tracking-widest">MODO SIMULAÇÃO</p>
             <p className="mt-1 opacity-80">Como {user?.name}</p>
-            <button 
+            <button
               onClick={stopImpersonating}
               className="mt-2 text-[9px] uppercase tracking-tighter hover:underline font-bold"
             >
