@@ -96,7 +96,27 @@ export function PwaHandler() {
           }
         });
       }
+      
+      // Force remove the manifest link to kill browser heuristics for installation
+      const manifestNode = document.querySelector('link[rel="manifest"]');
+      if (manifestNode) {
+        manifestNode.parentNode?.removeChild(manifestNode);
+        console.log('PWA: Removed manifest node to prevent installation prompt.');
+      }
     }
+  }, [isEnabled]);
+
+  // Intercept the native install prompt event globally based on the flag
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // If we know explicitly it's disabled, kill the event entirely
+      if (isEnabled === false) {
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, [isEnabled]);
 
   return null;
