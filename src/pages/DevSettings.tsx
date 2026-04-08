@@ -16,6 +16,7 @@ import { AuditLogViewer } from "@/components/dev/AuditLogViewer";
 import { HealthBoard } from "@/components/dev/HealthBoard";
 import { FeatureFlagManager } from "@/components/dev/FeatureFlagManager";
 import { UserImpersonator } from "@/components/dev/UserImpersonator";
+import { AnnouncementPanel } from "@/components/dev/AnnouncementPanel";
 import { apiSettingsService, ApiSetting, ApiSettingInput } from "@/services/apiSettingsService";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -164,6 +165,7 @@ export default function DevSettings() {
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="health">Monitoramento</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
+            <TabsTrigger value="announcements">Comunicados</TabsTrigger>
             <TabsTrigger value="impersonate">Simulação</TabsTrigger>
             {CATEGORIES.map((cat) => (
               <TabsTrigger key={cat.value} value={cat.value}>
@@ -192,6 +194,18 @@ export default function DevSettings() {
               </CardHeader>
               <CardContent>
                 <FeatureFlagManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <Card>
+              <CardHeader>
+                <CardTitle>Comunicados em Tempo Real</CardTitle>
+                <CardDescription>Envie mensagens instantâneas para todos os usuários logados</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AnnouncementPanel />
               </CardContent>
             </Card>
           </TabsContent>
