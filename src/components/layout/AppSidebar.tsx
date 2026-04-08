@@ -216,8 +216,12 @@ export function AppSidebar() {
         )}
         {!collapsed && user && (
           <div className="mb-5 px-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-impulse-gold" />
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-5 w-5 text-impulse-gold" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-bold text-white truncate leading-tight">

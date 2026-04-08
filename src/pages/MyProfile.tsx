@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { User, Lock, Save, Loader2, Camera } from 'lucide-react';
+import { User, Lock, Save, Loader2, Camera, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -151,6 +151,37 @@ export default function MyProfile() {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    
+    setUploadingAvatar(true);
+    try {
+      if (user.avatar_url) {
+        // Remove old file from R2
+        await storageService.delete(user.avatar_url).catch(e => console.error(e));
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      toast({ title: 'Sucesso', description: 'Foto de perfil removida com sucesso!' });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Avatar removal failed:', error);
+      toast({ title: 'Erro', description: 'Ocorreu um erro ao remover sua foto', variant: 'destructive' });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="mb-6">
@@ -192,9 +223,22 @@ export default function MyProfile() {
                   <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
                 </label>
               </div>
-              <div className="text-center sm:text-left">
-                <h3 className="text-sm font-bold">Foto de Exibição</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">Formatos suportados: JPEG, PNG, WEBP. Clique no ícone da câmera para trocar.</p>
+              <div className="text-center sm:text-left flex flex-col gap-2">
+                <div>
+                  <h3 className="text-sm font-bold">Foto de Exibição</h3>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">Formatos suportados: JPEG, PNG, WEBP. Clique no ícone da câmera para trocar.</p>
+                </div>
+                {user?.avatar_url && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRemoveAvatar} 
+                    disabled={uploadingAvatar} 
+                    className="w-fit mt-1 h-8 text-xs text-destructive hover:bg-destructive/10 border-transparent shadow-none"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" /> Remover Foto
+                  </Button>
+                )}
               </div>
             </div>
 
