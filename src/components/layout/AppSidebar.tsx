@@ -39,6 +39,18 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { 
+    title: 'Financeiro', 
+    href: '/financial', 
+    icon: DollarSign, 
+    roles: ['MASTER', 'DEV', 'FINANCEIRO'],
+    children: [
+      { title: 'Contas a Receber', href: '/financial/receivables' },
+      { title: 'Contas a Pagar', href: '/financial/payables' },
+    ]
+  },
+  { title: 'Funcionários', href: '/employees', icon: Users, roles: ['MASTER', 'DEV'] },
+  { title: 'Área DEV', href: '/dev', icon: Code, roles: ['DEV'] },
   { title: 'Minha Área', href: '/my-area', icon: Briefcase },
   { title: 'Calculadora', href: '/calculator', icon: Calculator },
   { title: 'Clientes', href: '/clients', icon: Users },
@@ -51,20 +63,8 @@ const navItems: NavItem[] = [
   { title: 'Agenda', href: '/agenda', icon: Calendar },
   { title: 'Fornecedores', href: '/suppliers', icon: Building2, roles: ['MASTER', 'DEV'] },
   { title: 'Estoque', href: '/inventory', icon: Package, roles: ['MASTER', 'DEV', 'COMPRAS'] },
-  { 
-    title: 'Financeiro', 
-    href: '/financial', 
-    icon: DollarSign, 
-    roles: ['MASTER', 'DEV', 'FINANCEIRO'],
-    children: [
-      { title: 'Contas a Receber', href: '/financial/receivables' },
-      { title: 'Contas a Pagar', href: '/financial/payables' },
-    ]
-  },
-  { title: 'Funcionários', href: '/employees', icon: Users, roles: ['MASTER', 'DEV'] },
   { title: 'Meu Perfil', href: '/my-profile', icon: User },
   { title: 'Configurações', href: '/settings', icon: Settings, roles: ['MASTER', 'DEV'] },
-  { title: 'Área DEV', href: '/dev', icon: Code, roles: ['DEV'] },
 ];
 
 export function AppSidebar() {
