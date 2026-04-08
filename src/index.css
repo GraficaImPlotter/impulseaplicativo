@@ -4,36 +4,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Impulse Soluções em Energia - Premium Design System */
+/* Impulse Soluções em Energia - Brand Restoration */
 
 @layer base {
   :root {
-    /* Refined Impulse Brand Colors - More Depth */
-    --impulse-dark: 174 75% 12%;       /* Deeper teal */
-    --impulse-dark-deep: 174 90% 7%;   /* Near black teal */
+    /* Impulse Original Brand Colors */
+    --impulse-dark: 174 75% 18%;
+    --impulse-dark-deep: 174 80% 12%;
     --impulse-gold: 43 98% 53%;
-    --impulse-gold-light: 45 100% 65%;
-    --impulse-white: 0 0% 100%;
-    --impulse-gray: 210 20% 96%;
-    --impulse-gray-dark: 210 15% 85%;
+    --impulse-gold-light: 43 100% 65%;
     
-    --background: 210 25% 98%;
-    --foreground: 174 80% 10%;
+    --background: 210 20% 98%;
+    --foreground: 174 75% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 174 80% 10%;
+    --card-foreground: 174 75% 18%;
 
-    --primary: 174 75% 12%;
+    --primary: 174 75% 18%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 43 98% 53%;
-    --secondary-foreground: 174 90% 8%;
+    --secondary-foreground: 174 80% 12%;
 
     --border: 210 20% 90%;
-    --radius: 1rem; /* Slightly larger radius for 'Premium' feel */
+    --radius: 0.75rem;
     
-    --sidebar-background: 174 80% 10%;
-    --sidebar-foreground: 0 0% 95%;
+    --sidebar-background: 174 75% 18%;
+    --sidebar-foreground: 0 0% 100%;
   }
 
   * {
@@ -43,72 +40,49 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    letter-spacing: -0.01em;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.03em;
   }
 }
 
 @layer utilities {
-  /* Textures & Visual Atmosphere */
-  .noise-bg::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.05;
-    z-index: 9999;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    mix-blend-mode: soft-light;
+  .gradient-impulse {
+    background: linear-gradient(135deg, hsl(var(--impulse-dark)) 0%, hsl(var(--impulse-dark-deep)) 100%);
+  }
+  
+  .gradient-gold {
+    background: linear-gradient(135deg, hsl(var(--impulse-gold)) 0%, hsl(var(--impulse-gold-light)) 100%);
   }
 
-  .gradient-mesh {
-    background: radial-gradient(at 0% 0%, hsla(174, 90%, 15%, 0.1) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(43, 98%, 53%, 0.05) 0px, transparent 50%);
-  }
-
-  .glassmorphism-v2 {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+  /* Glassmorphism that actually works with Dark backgrounds */
+  .glassmorphism {
+    @apply bg-impulse-dark/80 backdrop-blur-lg;
   }
 
   .shadow-premium {
-    box-shadow: 0 10px 30px -10px rgba(10, 50, 50, 0.1),
-                0 4px 10px -5px rgba(10, 50, 50, 0.05);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   }
 
-  /* Motion Design - Staggered Reveals */
+  /* Animation reveals kept for polish */
   .reveal-stagger > * {
     opacity: 0;
-    transform: translateY(20px);
-    animation: reveal 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    transform: translateY(10px);
+    animation: reveal 0.5s ease-out forwards;
   }
-
-  .reveal-stagger > *:nth-child(1) { animation-delay: 0.1s; }
-  .reveal-stagger > *:nth-child(2) { animation-delay: 0.2s; }
-  .reveal-stagger > *:nth-child(3) { animation-delay: 0.3s; }
-  .reveal-stagger > *:nth-child(4) { animation-delay: 0.4s; }
-  .reveal-stagger > *:nth-child(5) { animation-delay: 0.5s; }
+  .reveal-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .reveal-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+  .reveal-stagger > *:nth-child(3) { animation-delay: 0.15s; }
 
   @keyframes reveal {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Premium Hover Logic */
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-premium hover:brightness-110;
+    @apply transition-transform duration-200 hover:-translate-y-1;
   }
 
-  /* Safe Areas & Mobile */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }

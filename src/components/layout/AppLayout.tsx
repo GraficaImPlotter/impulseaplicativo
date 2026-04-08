@@ -14,11 +14,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="flex h-screen bg-background font-sans overflow-hidden noise-bg relative">
-      <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
-      
+    <div className="flex h-screen bg-background font-sans overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex relative z-10">
+      <div className="hidden md:flex relative z-50">
         <AppSidebar />
       </div>
 
