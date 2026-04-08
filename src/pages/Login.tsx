@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Sun, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -13,14 +13,17 @@ export default function Login() {
   const [imageLoaded, setImageLoaded] = useState(false);
   const { login, isAuthenticated, isProfileLoaded } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && isProfileLoaded) {
-      navigate('/dashboard', { replace: true });
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, isProfileLoaded, navigate]);
+  }, [isAuthenticated, isProfileLoaded, navigate, from]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,7 +49,7 @@ export default function Login() {
         title: 'Bem-vindo!',
         description: 'Login realizado com sucesso.',
       });
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     }
 
     setIsLoading(false);
