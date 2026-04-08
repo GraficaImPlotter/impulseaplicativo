@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ToggleLeft, Plus } from "lucide-react";
+import { ToggleLeft, Plus, RefreshCw } from "lucide-react";
 import { featureFlagService } from "@/services/featureFlagService";
 import { ApiSetting, apiSettingsService } from "@/services/apiSettingsService";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 export function FeatureFlagManager() {
   const [flags, setFlags] = useState<ApiSetting[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
   const loadFlags = async () => {
@@ -42,6 +43,7 @@ export function FeatureFlagManager() {
 
   const createInitialFlags = async () => {
     try {
+      setIsSyncing(true);
       const initialFlags = [
         { key: "MODULE_AGENDA_ENABLED", desc: "Habilita/Desabilita o módulo de Agenda" },
         { key: "MODULE_CALCULATOR_ENABLED", desc: "Habilita/Desabilita a Calculadora Solar" },
@@ -59,19 +61,26 @@ export function FeatureFlagManager() {
         { key: "MODULE_SETTINGS_ENABLED", desc: "Habilita/Desabilita o módulo de Configurações" },
       ];
 
+      // Get current keys to avoid duplicates
+      const currentKeys = flags.map(f => f.key);
+
       for (const flag of initialFlags) {
-        await apiSettingsService.create({
-          key: flag.key,
-          value: "true",
-          description: flag.desc,
-          category: "feature_flag"
-        });
+        if (!currentKeys.includes(flag.key)) {
+          await apiSettingsService.create({
+            key: flag.key,
+            value: "true",
+            description: flag.desc,
+            category: "feature_flag"
+          });
+        }
       }
       
-      loadFlags();
-      toast({ title: "Todas as flags foram criadas" });
+      await loadFlags();
+      toast({ title: "Módulos sincronizados com sucesso" });
     } catch (error) {
-      toast({ title: "Erro ao criar flags iniciais", variant: "destructive" });
+      toast({ title: "Erro ao sincronizar flags", variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -80,32 +89,39 @@ export function FeatureFlagManager() {
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium flex items-center gap-2">
           <ToggleLeft className="h-5 w-5 text-impulse-gold" />
-          Feature Flags
+          Gerenciador de Funcionalidades
         </h3>
-        {flags.length === 0 && (
-          <Button size="sm" onClick={createInitialFlags}>
-            <Plus className="h-4 w-4 mr-2" />
-            Criar Flags Iniciais
-          </Button>
-        )}
+        <Button 
+          size="sm" 
+          variant={flags.length < 14 ? "default" : "outline"}
+          onClick={createInitialFlags} 
+          disabled={isSyncing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+          {flags.length < 14 ? "Sincronizar Módulos" : "Forçar Sincronização"}
+        </Button>
       </div>
 
       <div className="grid gap-4">
-        {flags.length === 0 ? (
+        {loading && flags.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground animate-pulse">
+            Carregando flags...
+          </div>
+        ) : flags.length === 0 ? (
           <Card className="border-dashed border-sidebar-border bg-transparent">
             <CardContent className="py-8 text-center text-muted-foreground">
-              Nenhuma flag de funcionalidade cadastrada.
+              Nenhuma flag de funcionalidade cadastrada. Clique em Sincronizar.
             </CardContent>
           </Card>
         ) : (
           flags.map((flag) => (
-            <Card key={flag.id} className="border-sidebar-border bg-card/50">
+            <Card key={flag.id} className="border-sidebar-border bg-card/50 hover:border-primary/30 transition-colors group">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <code className="text-sm font-mono font-bold">{flag.key}</code>
+                    <code className="text-sm font-mono font-bold text-primary">{flag.key}</code>
                     {flag.value === "true" ? (
-                      <Badge variant="default" className="bg-green-600 text-[10px] h-4">Ativo</Badge>
+                      <Badge variant="default" className="bg-emerald-600 text-[10px] h-4">Ativo</Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px] h-4">Inativo</Badge>
                     )}
