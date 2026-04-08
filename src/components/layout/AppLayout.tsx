@@ -5,23 +5,39 @@ import { AnnouncementWatcher } from './AnnouncementWatcher';
 import { PresenceTracker } from './PresenceTracker';
 import { PwaHandler } from '../dev/PwaHandler';
 
+import { MobileHeader } from './MobileHeader';
+import { BottomNav } from './BottomNav';
+
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="flex h-screen bg-background font-sans">
-      <AppSidebar />
+    <div className="flex h-screen bg-background font-sans overflow-hidden">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex">
+        <AppSidebar />
+      </div>
+
       <CommandPalette />
       <AnnouncementWatcher />
       <PresenceTracker />
       <PwaHandler />
-      <main className="flex-1 overflow-x-hidden overflow-y-auto max-h-screen">
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-          {children}
-        </div>
-      </main>
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile Top Header */}
+        <MobileHeader />
+
+        <main className="flex-1 overflow-x-hidden overflow-y-auto pt-16 pb-20 md:pt-0 md:pb-0">
+          <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+
+        {/* Mobile Bottom Nav */}
+        <BottomNav />
+      </div>
     </div>
   );
 }

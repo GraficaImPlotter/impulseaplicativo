@@ -123,4 +123,27 @@
     0%, 100% { box-shadow: 0 0 0 0 hsl(var(--impulse-gold) / 0.4); }
     50% { box-shadow: 0 0 0 10px hsl(var(--impulse-gold) / 0); }
   }
+
+  .glassmorphism {
+    @apply bg-impulse-dark/80 backdrop-blur-lg;
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Improved Touch Targets for Mobile */
+  @media (max-width: 768px) {
+    button, [role="button"], a {
+      min-height: 48px;
+    }
+    
+    input, select, textarea {
+      font-size: 16px !important; /* Prevent iOS zoom */
+    }
+    
+    .card-mobile-optimized {
+      @apply rounded-xl border-none shadow-none bg-card/50;
+    }
+  }
 }
