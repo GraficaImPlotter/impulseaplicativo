@@ -40,17 +40,26 @@ export const permissionService: PermissionService = {
 
   async updateRolePermission(role: UserRole, permissionId: string, enabled: boolean) {
     if (enabled) {
+      // Use upsert to avoid unique constraint issues
       const { error } = await supabase
         .from('role_permissions')
-        .insert({ role, permission_id: permissionId });
-      if (error && error.code !== '23505') throw error; // Ignore unique constraint error
+        .upsert({ role, permission_id: permissionId }, { onConflict: 'role, permission_id' });
+      
+      if (error) {
+        console.error('Error enabling role permission:', error);
+        throw error;
+      }
     } else {
       const { error } = await supabase
         .from('role_permissions')
         .delete()
         .eq('role', role)
         .eq('permission_id', permissionId);
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error disabling role permission:', error);
+        throw error;
+      }
     }
   },
 

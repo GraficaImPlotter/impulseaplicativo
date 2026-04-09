@@ -1,5 +1,5 @@
 // User & Auth Types
-export type UserRole = 'MASTER' | 'ENGENHEIRO' | 'VENDEDOR' | 'DEV' | 'FINANCEIRO' | 'TECNICO' | 'POS_VENDA' | 'COMPRAS';
+export type UserRole = 'MASTER' | 'ENGENHEIRO' | 'VENDEDOR' | 'DEV' | 'FINANCEIRO' | 'TECNICO' | 'POS_VENDA' | 'COMPRAS' | 'CONSULTOR_TEC_DRONE' | 'PILOTO';
 
 export interface User {
   id: string;

@@ -35,6 +35,7 @@ ALTER TABLE public.user_permissions_override ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 DO $$
 BEGIN
+    -- Read policies (already exist, but let's ensure they are correct)
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'app_permissions_read_all' AND tablename = 'app_permissions') THEN
         CREATE POLICY "app_permissions_read_all" ON public.app_permissions FOR SELECT USING (auth.role() = 'authenticated');
     END IF;
@@ -45,6 +46,19 @@ BEGIN
     
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'user_permissions_override_read_all' AND tablename = 'user_permissions_override') THEN
         CREATE POLICY "user_permissions_override_read_all" ON public.user_permissions_override FOR SELECT USING (auth.role() = 'authenticated');
+    END IF;
+
+    -- Write policies (Allows MASTER and DEV to manage permissions)
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'role_permissions_manage_admin' AND tablename = 'role_permissions') THEN
+        CREATE POLICY "role_permissions_manage_admin" ON public.role_permissions FOR ALL USING (
+            EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('MASTER', 'DEV'))
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'user_permissions_override_manage_admin' AND tablename = 'user_permissions_override') THEN
+        CREATE POLICY "user_permissions_override_manage_admin" ON public.user_permissions_override FOR ALL USING (
+            EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('MASTER', 'DEV'))
+        );
     END IF;
 END $$;
 
@@ -78,6 +92,19 @@ INSERT INTO public.app_permissions (id, name, category) VALUES
 ('financial.manage', 'Adicionar/Editar Transações', 'financeiro')
 ON CONFLICT (id) DO NOTHING;
 
+-- Update enum roles (Run outside transaction if possible, or handle individually)
+-- Note: ALTER TYPE ADD VALUE cannot be executed inside a transaction block in some Postgres versions.
+-- Supabase migrations handle this, but for clarity we add them.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'CONSULTOR_TEC_DRONE') THEN
+        ALTER TYPE public.app_role ADD VALUE 'CONSULTOR_TEC_DRONE';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'PILOTO') THEN
+        ALTER TYPE public.app_role ADD VALUE 'PILOTO';
+    END IF;
+END $$;
+
 -- Seed default role permissions (MASTER defaults)
 DO $$
 DECLARE
@@ -92,8 +119,7 @@ BEGIN
     END LOOP;
 END $$;
 
--- Dev always gets everything (even if not in role_permissions, logic will handle)
--- But let's seed anyway for consistency
+-- Dev always gets everything
 INSERT INTO public.role_permissions (role, permission_id)
 SELECT 'DEV'::public.app_role, id FROM public.app_permissions
 ON CONFLICT DO NOTHING;
@@ -108,4 +134,18 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.role_permissions (role, permission_id)
 SELECT 'FINANCEIRO'::public.app_role, id FROM public.app_permissions 
 WHERE id IN ('dashboard.view', 'calculator.view', 'profile.view', 'my_area.view', 'agenda.view', 'financial.view', 'financial.receivables.view', 'financial.payables.view', 'sales.view', 'inventory.view')
+ON CONFLICT DO NOTHING;
+
+-- CONSULTOR_TEC_DRONE defaults
+-- Dashboard, Drone, Perfil, Minha Área e Agenda
+INSERT INTO public.role_permissions (role, permission_id)
+SELECT 'CONSULTOR_TEC_DRONE'::public.app_role, id FROM public.app_permissions 
+WHERE id IN ('dashboard.view', 'drone.view', 'profile.view', 'my_area.view', 'agenda.view', 'service_orders.view')
+ON CONFLICT DO NOTHING;
+
+-- PILOTO defaults
+-- Same as Consultor
+INSERT INTO public.role_permissions (role, permission_id)
+SELECT 'PILOTO'::public.app_role, id FROM public.app_permissions 
+WHERE id IN ('dashboard.view', 'drone.view', 'profile.view', 'my_area.view', 'agenda.view', 'service_orders.view')
 ON CONFLICT DO NOTHING;
