@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import logoImpulse from '@/assets/logo-impulse.png';
+import { UpdateBell } from './UpdateBell';
 
 interface NavItem {
   title: string;
@@ -275,6 +276,7 @@ export function AppSidebar() {
               </p>
               <p className="text-[11px] text-impulse-gold/70 font-medium tracking-wide">{user.role}</p>
             </div>
+            <UpdateBell className="shrink-0" />
           </div>
         )}
         <button

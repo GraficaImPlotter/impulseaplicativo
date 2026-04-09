@@ -4,6 +4,7 @@ import { Wifi, WifiOff, Bell, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import logoImpulse from "@/assets/logo-impulse.png";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { UpdateBell } from "./UpdateBell";
 
 export function MobileHeader() {
   const { user } = useAuth();
@@ -33,10 +34,7 @@ export function MobileHeader() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="p-2 text-white/70 hover:text-impulse-gold relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-impulse-gold rounded-full border border-impulse-dark" />
-        </button>
+        <UpdateBell />
         <div className="w-8 h-8 rounded-full bg-sidebar-accent border border-white/20 overflow-hidden flex items-center justify-center">
           {user?.avatar_url ? (
             <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />

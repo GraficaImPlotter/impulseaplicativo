@@ -18,6 +18,7 @@ import { UserImpersonator } from "@/components/dev/UserImpersonator";
 import { AnnouncementPanel } from "@/components/dev/AnnouncementPanel";
 import { UserPresenceBoard } from "@/components/dev/UserPresenceBoard";
 import { PwaSettings } from "@/components/dev/PwaSettings";
+import { DevUpdateManager } from "@/components/dev/DevUpdateManager";
 import { apiSettingsService, ApiSetting, ApiSettingInput } from "@/services/apiSettingsService";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -179,6 +180,7 @@ export default function DevSettings() {
               <TabsTrigger value="announcements" className="data-[state=active]:bg-background">Comunicados</TabsTrigger>
               <TabsTrigger value="presence" className="data-[state=active]:bg-background text-xs sm:text-sm">👥 Online</TabsTrigger>
               <TabsTrigger value="pwa" className="data-[state=active]:bg-background text-xs sm:text-sm">📱 PWA</TabsTrigger>
+              <TabsTrigger value="updates" className="data-[state=active]:bg-background">🚀 Novidades</TabsTrigger>
               <TabsTrigger value="impersonate" className="data-[state=active]:bg-background">Simulação</TabsTrigger>
               {CATEGORIES.map((cat) => (
                 <TabsTrigger key={cat.value} value={cat.value} className="data-[state=active]:bg-background">
@@ -238,6 +240,12 @@ export default function DevSettings() {
 
           <TabsContent value="pwa">
             <PwaSettings />
+          </TabsContent>
+
+          <TabsContent value="updates">
+            <div className="max-w-4xl mx-auto">
+              <DevUpdateManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="impersonate">
