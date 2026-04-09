@@ -209,10 +209,16 @@ export default function Inventory() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      product.brand?.toLowerCase().includes(search.toLowerCase());
+  const filteredProducts = (products || []).filter(product => {
+    if (!product) return false;
+    const name = product.name?.toLowerCase() || '';
+    const sku = product.sku?.toLowerCase() || '';
+    const brand = product.brand?.toLowerCase() || '';
+    const searchTerm = (search || '').toLowerCase();
+
+    const matchesSearch = name.includes(searchTerm) ||
+      sku.includes(searchTerm) ||
+      brand.includes(searchTerm);
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });

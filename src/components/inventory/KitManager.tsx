@@ -29,7 +29,9 @@ interface KitManagerProps {
 }
 
 export function KitManager({ filters, onFiltersChange }: KitManagerProps) {
-  const { search, systemType: systemTypeFilter } = filters;
+  // Guard against missing filters prop
+  const search = filters?.search || "";
+  const systemTypeFilter = filters?.systemType || "all";
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingKit, setEditingKit] = useState<Kit | null>(null);
 
@@ -94,9 +96,14 @@ export function KitManager({ filters, onFiltersChange }: KitManagerProps) {
     setIsDialogOpen(true);
   };
 
-  const filteredKits = kits.filter(kit => {
-    const matchesSearch = kit.name.toLowerCase().includes(search.toLowerCase()) ||
-      kit.description?.toLowerCase().includes(search.toLowerCase());
+  const filteredKits = (kits || []).filter(kit => {
+    if (!kit) return false;
+    const name = kit.name?.toLowerCase() || '';
+    const description = kit.description?.toLowerCase() || '';
+    const searchTerm = (search || '').toLowerCase();
+
+    const matchesSearch = name.includes(searchTerm) ||
+      description.includes(searchTerm);
     const matchesType = systemTypeFilter === 'all' || kit.system_type === systemTypeFilter;
     return matchesSearch && matchesType;
   });
