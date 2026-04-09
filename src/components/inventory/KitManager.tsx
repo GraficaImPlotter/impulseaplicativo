@@ -20,6 +20,11 @@ const SYSTEM_TYPE_LABELS: Record<SystemType, { label: string; icon: React.ReactN
   off_grid: { label: 'Off Grid', icon: <Battery className="h-4 w-4" /> },
 };
 
+const formatCurrency = (value: number | null | undefined) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+
 interface KitManagerProps {
   filters: {
     search: string;
@@ -230,11 +235,11 @@ export function KitManager({ filters, onFiltersChange }: KitManagerProps) {
                           {systemTypeInfo.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center">{kit.total_power_kwp.toFixed(2)} kWp</TableCell>
+                      <TableCell className="text-center">{(kit.total_power_kwp || 0).toFixed(2)} kWp</TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-wrap gap-1 justify-center">
                           <Badge variant="secondary">{moduleCount} módulos</Badge>
-                          <Badge variant="secondary">{kit.items.length} itens</Badge>
+                          <Badge variant="secondary">{(kit.items || []).length} itens</Badge>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">{formatCurrency(kit.cost_price)}</TableCell>
