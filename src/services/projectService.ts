@@ -27,6 +27,9 @@ export interface Project {
   };
   created_at: string;
   updated_at: string;
+  client?: {
+    name: string;
+  };
 }
 
 export interface DocumentFile {
@@ -59,7 +62,7 @@ export const projectService = {
   async getAll(): Promise<Project[]> {
     const { data, error } = await supabase
       .from('projects')
-      .select('*')
+      .select('*, client:clients(name)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

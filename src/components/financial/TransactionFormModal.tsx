@@ -373,7 +373,8 @@ export function TransactionFormModal({ type, open, onOpenChange, onSubmit, trans
                               <SelectItem value="none">Nenhum</SelectItem>
                               {projects.map(p => (
                                 <SelectItem key={p.id} value={p.id}>
-                                  {p.notes ? (p.notes.length > 30 ? p.notes.slice(0, 30) + "..." : p.notes) : `Projeto ${p.id.slice(0, 8)}`}
+                                  {p.client?.name || 'Sem Cliente'} - {p.notes ? (p.notes.length > 20 ? p.notes.slice(0, 20) + "..." : p.notes) : `Projeto ${p.id.slice(-4)}`}
+                                  {p.power_kwp && ` (${p.power_kwp} kWp)`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
