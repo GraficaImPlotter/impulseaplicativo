@@ -81,8 +81,8 @@ const App = () => (
               <Route path="/sales" element={<ProtectedRoute allowedRoles={['MASTER', 'ENGENHEIRO', 'VENDEDOR', 'FINANCEIRO', 'COMPRAS']}><Sales /></ProtectedRoute>} />
               <Route path="/funnel" element={<ProtectedRoute><Funnel /></ProtectedRoute>} />
               <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-              <Route path="/suppliers" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV']}><Suppliers /></ProtectedRoute>} />
-              <Route path="/inventory" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'COMPRAS']}><Inventory /></ProtectedRoute>} />
+              <Route path="/suppliers" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'ENGENHEIRO']}><Suppliers /></ProtectedRoute>} />
+              <Route path="/inventory" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'COMPRAS', 'ENGENHEIRO']}><Inventory /></ProtectedRoute>} />
               <Route path="/financial" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><Financial /></ProtectedRoute>} />
               <Route path="/financial/receivables" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><FinancialReceivables /></ProtectedRoute>} />
               <Route path="/financial/payables" element={<ProtectedRoute allowedRoles={['MASTER', 'DEV', 'FINANCEIRO']}><FinancialPayables /></ProtectedRoute>} />
