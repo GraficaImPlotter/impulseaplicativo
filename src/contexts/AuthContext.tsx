@@ -58,10 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fetchUserProfile(session.user.id).then(() => {
               // After profile is loaded, check for impersonation
               const savedImpersonation = sessionStorage.getItem('impersonated_user');
-              if (savedImpersonation) {
+              const savedRealUser = sessionStorage.getItem('real_user');
+              if (savedImpersonation && savedRealUser) {
                 try {
                   const targetUser = JSON.parse(savedImpersonation);
+                  const originalUser = JSON.parse(savedRealUser);
                   setUser(targetUser);
+                  setRealUser(originalUser);
                 } catch (e) {
                   console.error("Error restoring impersonation", e);
                 }
@@ -183,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         realUser: realUser || user,
+        isImpersonating: !!realUser,
         session,
         isLoading,
         isAuthenticated: !!session,

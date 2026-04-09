@@ -14,6 +14,7 @@ export interface UserProfile {
 export interface AuthContextType {
   user: UserProfile | null;
   realUser: UserProfile | null;
+  isImpersonating: boolean;
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;

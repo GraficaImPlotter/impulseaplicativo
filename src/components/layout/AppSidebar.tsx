@@ -109,7 +109,7 @@ const navGroups: NavGroup[] = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [flags, setFlags] = useState<Record<string, boolean>>({});
-  const { user, realUser, logout, hasRole, stopImpersonating } = useAuth();
+  const { user, logout, hasRole, stopImpersonating, isImpersonating } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
