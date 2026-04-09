@@ -1021,6 +1021,7 @@ export function ServiceOrderModal({
               {renderSectorChatSection('VENDAS')}
             </TabsContent>
           </Tabs>
+          )}
         </div>
 
         {/* Actions */}
