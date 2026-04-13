@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, addDays, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

@@ -75,7 +75,7 @@ export default function MyArea() {
   const userRole = user?.role || 'VENDEDOR';
   const userId = user?.id;
 
-  const { data: allProjects = [], isLoading: loading } = useQuery({
+  const { data: allProjects = [], isLoading: loading, refetch: refetchProjects } = useQuery({
     queryKey: ['projects-all'],
     queryFn: projectService.getAll,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
@@ -376,7 +376,7 @@ export default function MyArea() {
         project={selectedProject}
         open={modalOpen}
         onOpenChange={setModalOpen}
-        onSave={fetchProjects}
+        onSave={refetchProjects}
       />
     </>
   );
