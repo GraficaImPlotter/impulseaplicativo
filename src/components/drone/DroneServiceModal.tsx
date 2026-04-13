@@ -183,7 +183,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     }
   };
 
-  if (!service) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -509,5 +508,4 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       </DialogContent>
     </Dialog>
   );
-}
 }
