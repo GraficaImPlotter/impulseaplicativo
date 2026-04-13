@@ -5,13 +5,19 @@ export type DroneServiceStatus = 'PENDENTE' | 'EM_ANALISE' | 'CONCLUIDA' | 'CANC
 export interface DroneService {
   id: string;
   client_id?: string;
+  client_name?: string;
+  technician_id?: string;
   status: DroneServiceStatus;
   power_kwp?: number;
   notes?: string;
   location?: string;
   created_at: string;
   updated_at: string;
+  display_code?: string;
   client?: {
+    name: string;
+  };
+  technician?: {
     name: string;
   };
 }
@@ -20,7 +26,7 @@ export const droneService = {
   async getAll(): Promise<DroneService[]> {
     const { data, error } = await (supabase
       .from('drone_services' as any) as any)
-      .select('*, client:clients(name)')
+      .select('*, client:clients(name), technician:profiles!technician_id(name)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

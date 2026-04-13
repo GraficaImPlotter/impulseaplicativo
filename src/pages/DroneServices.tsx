@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   Activity, Search, Plus, List, LayoutGrid, Calendar, 
   Loader2, Filter, ChevronRight, MoreHorizontal, Clock,
-  CheckCircle2, AlertCircle, XCircle
+  CheckCircle2, AlertCircle, XCircle, MapPin
 } from 'lucide-react';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
@@ -71,24 +71,34 @@ export default function DroneServices() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-muted/50 p-1.5 rounded-2xl border border-border">
-          <Button
-            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-            className={cn("rounded-xl h-9", viewMode === 'list' && "shadow-sm bg-background")}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 bg-muted/50 p-1.5 rounded-2xl border border-border">
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={cn("rounded-xl h-9", viewMode === 'list' && "shadow-sm bg-background")}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className={cn("rounded-xl h-9", viewMode === 'kanban' && "shadow-sm bg-background")}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Kanban
+            </Button>
+          </div>
+          
+          <Button 
+            onClick={() => { setSelectedService(null); setModalOpen(true); }}
+            className="rounded-2xl h-12 px-6 shadow-lg shadow-primary/20 animate-in zoom-in-50 duration-500"
           >
-            <List className="h-4 w-4 mr-2" />
-            Lista
-          </Button>
-          <Button
-            variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('kanban')}
-            className={cn("rounded-xl h-9", viewMode === 'kanban' && "shadow-sm bg-background")}
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Kanban
+            <Plus className="h-5 w-5 mr-2" />
+            Nova OS Drone
           </Button>
         </div>
       </div>
@@ -179,14 +189,14 @@ export default function DroneServices() {
                     <StatusIcon className="h-5 w-5" />
                   </div>
                   <Badge variant="secondary" className="bg-muted font-bold tracking-tight">
-                    #{service.id.slice(0, 8)}
+                    {service.display_code || `#${service.id.slice(0, 8)}`}
                   </Badge>
                 </div>
 
                 <div className="space-y-4 relative z-10">
                   <div>
                     <h3 className="text-lg font-black text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                      {service.client?.name || 'Cliente não vinculado'}
+                      {service.client?.name || service.client_name || 'Cliente não informado'}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
@@ -253,7 +263,7 @@ export default function DroneServices() {
                       </div>
                       <div className="flex items-center justify-between pt-3 border-t border-border/50">
                         <Badge variant="outline" className="text-[9px] font-black h-5 px-1 bg-muted/30 border-none uppercase">
-                          #{service.id.slice(0, 6)}
+                          {service.display_code || `#${service.id.slice(0, 6)}`}
                         </Badge>
                         <span className="text-[9px] font-bold text-muted-foreground">
                           {format(new Date(service.created_at), "dd MMM", { locale: ptBR })}
