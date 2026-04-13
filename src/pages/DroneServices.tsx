@@ -124,6 +124,13 @@ export default function DroneServices() {
       </div>
 
       {/* Filters & Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3 flex flex-col md:flex-row gap-3">
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            {Object.entries(statusConfig).map(([key, config]) => (
+              <Button
+                key={key}
+                variant={statusFilter === key ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => setStatusFilter(statusFilter === key ? null : key as DroneServiceStatus)}
                 className={cn(
