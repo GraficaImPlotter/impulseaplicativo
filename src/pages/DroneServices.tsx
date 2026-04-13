@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Plane, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
@@ -48,9 +48,9 @@ export default function DroneServices() {
   });
 
   // Carregar pilotos para mapear nomes localmente
-  useState(() => {
+  useEffect(() => {
     getUsers().then(setPilots).catch(console.error);
-  });
+  }, []);
 
   const technicianNames = pilots.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {} as Record<string, string>);
 
@@ -300,7 +300,7 @@ export default function DroneServices() {
                           <User className="h-3 w-3" />
                         </div>
                         <span className="text-xs font-bold text-foreground">
-                          {s.technician_id ? (technicianNames[s.technician_id] || 'Piloto Local') : 'Não atribuído'}
+                          {service.technician_id ? (technicianNames[service.technician_id] || 'Piloto Local') : 'Não atribuído'}
                         </span>
                       </div>
                     </TableCell>
