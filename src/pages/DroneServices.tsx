@@ -238,9 +238,9 @@ export default function DroneServices() {
                       <span className={cn("text-sm font-bold", config.color.replace('bg-', 'text-'))}>{config.label}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">Data</span>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">Área</span>
                       <span className="text-sm font-bold text-foreground">
-                        {safeFormatDate(service.created_at)}
+                        {service.area_hectares || '0'} ha
                       </span>
                     </div>
                   </div>

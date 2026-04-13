@@ -1,16 +1,20 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type DroneServiceStatus = 'PENDENTE' | 'EM_ANALISE' | 'CONCLUIDA' | 'CANCELADA';
+export type DroneServiceStatus = 'PENDENTE' | 'TECNICO' | 'REVISAO' | 'FINALIZADO' | 'EM_ANALISE' | 'CONCLUIDA' | 'CANCELADA';
 
 export interface DroneService {
   id: string;
   client_id?: string;
   client_name?: string;
+  client_phone?: string;
+  client_document?: string;
+  client_address_street?: string;
   technician_id?: string;
   status: DroneServiceStatus;
-  power_kwp?: number;
+  area_hectares?: number;
   notes?: string;
   location?: string;
+  location_link?: string;
   created_at: string;
   updated_at: string;
   display_code?: string;

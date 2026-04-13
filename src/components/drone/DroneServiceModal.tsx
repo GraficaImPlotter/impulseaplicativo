@@ -51,12 +51,56 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
+    client_phone: '',
+    client_document: '',
+    client_address_street: '',
     technician_id: '',
     location: '',
-    power_kwp: '',
+    area_hectares: '',
     notes: ''
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Masks
+  const maskPhone = (v: string) => {
+    v = v.replace(/\D/g, "");
+    if (v.length > 11) v = v.slice(0, 11);
+    if (v.length > 10) {
+      return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    } else {
+      return v.replace(/^(\d{2})(\d{4})(\d{4}).*/, "($1) $2-$3");
+    }
+  };
+
+  const maskDocument = (v: string) => {
+    v = v.replace(/\D/g, "");
+    if (v.length > 14) v = v.slice(0, 14);
+    if (v.length > 11) {
+      return v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
+    } else {
+      return v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, "$1.$2.$3-$4");
+    }
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocalização não suportada pelo navegador');
+      return;
+    }
+    
+    toast.info('Obtendo localização atual...');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setFormData(prev => ({ ...prev, location: `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}` }));
+        toast.success('Localização capturada com sucesso');
+      },
+      (err) => {
+        console.error(err);
+        toast.error('Erro ao capturar localização. Verifique as permissões.');
+      }
+    );
+  };
 
   const safeFormatDate = (dateStr: string | null | undefined, fmt: string = "dd/MM/yy") => {
     if (!dateStr) return "-";
@@ -80,9 +124,12 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         setFormData({
           client_id: '',
           client_name: '',
+          client_phone: '',
+          client_document: '',
+          client_address_street: '',
           technician_id: '',
           location: '',
-          power_kwp: '',
+          area_hectares: '',
           notes: ''
         });
         setIsManualClient(false);
@@ -97,7 +144,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         getUsers()
       ]);
       setClients(allClients);
-      setPilots(allUsers.filter(u => u.role === 'PILOTO' || u.role === 'DEV' || u.role === 'MASTER'));
+      // REQUISITO: Apenas cargo PILOTO
+      setPilots(allUsers.filter(u => u.role === 'PILOTO'));
     } catch (error) {
       console.error('Error loading initial data:', error);
     }
@@ -169,9 +217,12 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       const newService = await droneService.create({
         client_id: isManualClient ? undefined : formData.client_id,
         client_name: isManualClient ? formData.client_name : undefined,
+        client_phone: isManualClient ? formData.client_phone : undefined,
+        client_document: isManualClient ? formData.client_document : undefined,
+        client_address_street: isManualClient ? formData.client_address_street : undefined,
         technician_id: formData.technician_id || undefined,
         location: formData.location,
-        power_kwp: parseFloat(formData.power_kwp) || undefined,
+        area_hectares: parseFloat(formData.area_hectares) || undefined,
         notes: formData.notes,
         status: 'PENDENTE'
       });
@@ -292,8 +343,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Potência:</span>
-                      <span className="font-bold text-foreground">{service.power_kwp || 'N/A'} kWp</span>
+                      <span className="text-muted-foreground">Área:</span>
+                      <span className="font-bold text-foreground">{service.area_hectares || 'N/A'} ha</span>
                     </div>
                     <div className="h-px bg-border/50" />
                     <div className="space-y-2">
@@ -407,11 +458,31 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 </div>
 
                 {isManualClient ? (
-                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                     <Input 
                       placeholder="Nome completo do cliente..."
                       value={formData.client_name}
                       onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                      className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input 
+                        placeholder="Telefone (WhatsApp)"
+                        value={formData.client_phone}
+                        onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })}
+                        className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
+                      />
+                      <Input 
+                        placeholder="CPF ou CNPJ"
+                        value={formData.client_document}
+                        onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })}
+                        className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
+                      />
+                    </div>
+                    <Input 
+                      placeholder="Endereço completo"
+                      value={formData.client_address_street}
+                      onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })}
                       className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
                     />
                   </div>
@@ -452,26 +523,37 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Potência (kWp)</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Área (ha)</Label>
                 <div className="relative group">
                   <Settings2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input 
                     type="number"
                     step="0.01"
-                    placeholder="Ex: 5.45"
-                    value={formData.power_kwp}
-                    onChange={(e) => setFormData({ ...formData, power_kwp: e.target.value })}
+                    placeholder="Ex: 50.5"
+                    value={formData.area_hectares}
+                    onChange={(e) => setFormData({ ...formData, area_hectares: e.target.value })}
                     className="h-12 pl-12 rounded-2xl border-border bg-card"
                   />
                 </div>
               </div>
 
               <div className="col-span-2 space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Localização</Label>
+                <div className="flex items-center justify-between px-1">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Localização</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleGetLocation}
+                    className="h-7 px-2 text-[10px] font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                  >
+                    <MapPin className="h-3 w-3 mr-1" />
+                    CAPTURAR GPS
+                  </Button>
+                </div>
                 <div className="relative group">
                   <MapPin className="absolute left-4 top-4 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input 
-                    placeholder="Endereço ou link do Google Maps..."
+                    placeholder="Endereço ou coordenadas..."
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     className="h-12 pl-12 rounded-2xl border-border bg-card"
