@@ -84,7 +84,9 @@ export default function ServiceOrders() {
       return matchesSearch && isOrderOverdue(order);
     }
     
-    const matchesStatus = statusFilter === 'TODOS' || order.status === statusFilter;
+    const matchesStatus = statusFilter === 'TODOS' 
+      ? order.status !== 'CONCLUIDO' 
+      : order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 

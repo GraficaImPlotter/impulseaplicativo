@@ -42,6 +42,7 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [showArchived, setShowArchived] = useState(false);
   const [preselectedClientId, setPreselectedClientId] = useState<string | undefined>();
   const { stages, template } = useProjectStages();
 
@@ -98,6 +99,19 @@ export default function Projects() {
     const clientName = project.client_id ? clientNames[project.client_id] || '' : '';
     const matchesSearch = clientName.toLowerCase().includes(search.toLowerCase());
     const matchesStage = !stageFilter || project.status === stageFilter;
+    
+    // Calculate progress to determine if it's archived (100%)
+    const progress = calculateProjectProgress(
+      project.checklist,
+      project.installation_type,
+      stages,
+      template,
+    );
+    const isArchived = progress === 100;
+
+    // By default, hide archived projects unless explicitly filtering by a stage or showArchived is on
+    if (!showArchived && isArchived && !stageFilter) return false;
+
     return matchesSearch && matchesStage;
   });
 
@@ -182,6 +196,16 @@ export default function Projects() {
               <Calendar className="h-4 w-4" />
             </Button>
           </div>
+
+          <Button
+            variant={showArchived ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+            className="h-10 rounded-xl gap-2"
+          >
+            <FolderKanban className="h-4 w-4" />
+            {showArchived ? "Ocultar Concluídos" : "Ver Concluídos"}
+          </Button>
         </div>
       </div>
 
