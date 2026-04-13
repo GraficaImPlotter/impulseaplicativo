@@ -24,7 +24,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { droneLogService } from '@/services/droneLogService';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type ViewMode = 'list' | 'kanban';
 
@@ -40,6 +44,7 @@ export default function DroneServices() {
   const [selectedService, setSelectedService] = useState<DroneService | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<DroneServiceStatus | null>(null);
+  const [pilotFilter, setPilotFilter] = useState<string | null>(null);
   const [pilots, setPilots] = useState<UserWithRole[]>([]);
 
   const { data: services = [], isLoading, refetch } = useQuery({
@@ -71,7 +76,8 @@ export default function DroneServices() {
     
     const matchesSearch = clientName.includes(searchLower) || location.includes(searchLower);
     const matchesStatus = !statusFilter || s.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPilot = !pilotFilter || s.technician_id === pilotFilter;
+    return matchesSearch && matchesStatus && matchesPilot;
   });
 
   const [draggedService, setDraggedService] = useState<DroneService | null>(null);
@@ -206,9 +212,48 @@ export default function DroneServices() {
             className="pl-12 h-14 rounded-2xl bg-card border-border/50 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
           />
         </div>
-        <Button variant="outline" className="h-14 w-14 rounded-2xl border-border bg-card shadow-sm hover:bg-muted transition-all active:scale-95">
-          <Filter className="h-5 w-5 text-foreground" />
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant={pilotFilter ? "secondary" : "outline"} className={cn("h-14 w-14 rounded-2xl border-border bg-card shadow-sm hover:bg-muted transition-all active:scale-95", pilotFilter && "border-primary/50 text-primary")}>
+              <Filter className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-4 rounded-3xl bg-card border-border shadow-2xl" align="end">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black uppercase tracking-tighter text-sm">Filtrar por Piloto</h4>
+                {pilotFilter && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setPilotFilter(null)}
+                    className="h-7 px-2 text-[10px] font-bold uppercase text-primary"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+                {pilots.filter(p => p.role === 'PILOTO' || p.role === 'DEV' || p.role === 'MASTER').map((pilot) => (
+                  <button
+                    key={pilot.id}
+                    onClick={() => setPilotFilter(pilotFilter === pilot.id ? null : pilot.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left",
+                      pilotFilter === pilot.id ? "bg-primary/10 text-primary border border-primary/20" : "hover:bg-muted text-muted-foreground border border-transparent"
+                    )}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-bold truncate">{pilot.name}</span>
+                  </button>
+                ))}
+                {pilots.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum piloto encontrado</p>}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Filters & Summary */}
@@ -256,7 +301,7 @@ export default function DroneServices() {
           </div>
           <Button 
             variant="outline" 
-            onClick={() => { setSearch(''); setStatusFilter(null); }}
+            onClick={() => { setSearch(''); setStatusFilter(null); setPilotFilter(null); }}
             className="rounded-2xl"
           >
             Limpar Filtros
