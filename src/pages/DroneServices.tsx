@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Activity, Search, Plus, List, LayoutGrid, Calendar, 
+  Activity, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
   Loader2, Filter, ChevronRight, MoreHorizontal, Clock,
   CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2
 } from 'lucide-react';
@@ -123,7 +123,7 @@ export default function DroneServices() {
             onClick={() => { setSelectedService(null); setModalOpen(true); }}
             className="rounded-2xl h-12 px-6 shadow-lg shadow-primary/20 animate-in zoom-in-50 duration-500"
           >
-            <Plus className="h-5 w-5 mr-2" />
+            <PlusIcon className="h-5 w-5 mr-2" />
             Nova OS Drone
           </Button>
         </div>
