@@ -59,7 +59,7 @@ const navGroups: NavGroup[] = [
     label: 'UTILIDADES',
     items: [
       { title: 'Calculadora', href: '/calculator', icon: Calculator, permission: 'calculator.view', flag: 'MODULE_CALCULATOR_ENABLED' },
-      { title: 'Drone', href: '/drone', icon: Plane, permission: 'drone.view', flag: 'MODULE_DRONE_ENABLED', restrictedRoles: ['TECNICO'] },
+      { title: 'Drone', href: '/drone', icon: Plane, permission: 'drone.view', flag: 'MODULE_DRONE_ENABLED' },
     ]
   },
   {

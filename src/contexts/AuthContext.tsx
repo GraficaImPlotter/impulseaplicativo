@@ -55,6 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
+        // 3. Apply hardcoded role-based permissions for core system roles
+        if (userRole === 'ENGENHEIRO') {
+          ['projects.view', 'quotes.view', 'funnel.view', 'clients.view', 'service_orders.view', 'inventory.view', 'drone.view'].forEach(p => effectivePermissions.add(p));
+        } else if (userRole === 'TECNICO') {
+          ['service_orders.view', 'drone.view'].forEach(p => effectivePermissions.add(p));
+        } else if (userRole === 'FINANCEIRO') {
+          ['financial.view', 'projects.view', 'clients.view', 'sales.view', 'quotes.view'].forEach(p => effectivePermissions.add(p));
+        }
+
         setUser({
           id: profile.id,
           email: profile.email,

@@ -63,7 +63,7 @@ export default function ServiceOrders() {
     return differenceInDays(new Date(order.deadline_date), new Date());
   };
 
-  const canViewAllOrders = hasRole(['MASTER', 'ENGENHEIRO', 'TECNICO', 'DEV', 'CONSULTOR_TEC_DRONE']);
+  const canViewAllOrders = hasRole(['MASTER', 'ENGENHEIRO', 'DEV']);
   const canDeleteOrder = (order: ServiceOrder) => {
     if (!user) return false;
     if (['TECNICO', 'PILOTO', 'CONSULTOR_TEC_DRONE'].includes(user.role)) return false;
