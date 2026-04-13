@@ -3,6 +3,7 @@ import { AlertCircle, Clock, DollarSign, Package, Bell, ChevronRight } from 'luc
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Alert {
   id: string;
@@ -14,7 +15,7 @@ interface Alert {
   count?: number;
 }
 
-async function fetchAlerts(): Promise<Alert[]> {
+async function fetchAlerts(role: string, userId: string): Promise<Alert[]> {
   const alertsList: Alert[] = [];
   const today = new Date().toISOString().split('T')[0];
   const nextWeek = new Date();
@@ -22,40 +23,63 @@ async function fetchAlerts(): Promise<Alert[]> {
   const fifteenDaysAgo = new Date();
   fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
+  const isMasterOrDev = role === 'MASTER' || role === 'DEV';
+  const isEngenharia = role === 'ENGENHEIRO' || role === 'TECNICO';
+  const isVendedor = role === 'VENDEDOR';
+  const isFinanceiro = role === 'FINANCEIRO';
+
+  const queries = [];
+
+  // Delayed Projects
+  let projQ = supabase
+    .from('projects')
+    .select('id')
+    .not('status', 'eq', 'POS_VENDA')
+    .not('estimated_end_date', 'is', null)
+    .lt('estimated_end_date', today);
+  if (isEngenharia && !isMasterOrDev) projQ = projQ.eq('assigned_to', userId);
+  queries.push(isMasterOrDev || isEngenharia ? projQ : Promise.resolve({ data: [] }));
+
+  // Overdue Transactions
+  let overdueTransQ = supabase
+    .from('transactions')
+    .select('id, amount')
+    .eq('status', 'PENDENTE')
+    .lt('due_date', today);
+  // (Optional: filter for financeiro)
+  queries.push(isMasterOrDev || isFinanceiro ? overdueTransQ : Promise.resolve({ data: [] }));
+
+  // Upcoming Payments
+  let upcomingTransQ = supabase
+    .from('transactions')
+    .select('id, amount')
+    .eq('status', 'PENDENTE')
+    .gte('due_date', today)
+    .lte('due_date', nextWeek.toISOString().split('T')[0]);
+  queries.push(isMasterOrDev || isFinanceiro ? upcomingTransQ : Promise.resolve({ data: [] }));
+
+  // Low Stock
+  queries.push(isMasterOrDev ? supabase
+    .from('products')
+    .select('id, quantity, min_quantity')
+    .eq('active', true) : Promise.resolve({ data: [] }));
+
+  // Expiring Quotes
+  let quotesQ = supabase
+    .from('quotes')
+    .select('id')
+    .eq('status', 'SENT')
+    .lt('created_at', fifteenDaysAgo.toISOString());
+  if (isVendedor && !isMasterOrDev) quotesQ = quotesQ.eq('created_by', userId);
+  queries.push(isMasterOrDev || isVendedor ? quotesQ : Promise.resolve({ data: [] }));
+
   const [
     { data: delayedProjects },
     { data: overdueTransactions },
     { data: upcomingPayments },
     { data: lowStockProducts },
     { data: expiringQuotes },
-  ] = await Promise.all([
-    supabase
-      .from('projects')
-      .select('id')
-      .not('status', 'eq', 'POS_VENDA')
-      .not('estimated_end_date', 'is', null)
-      .lt('estimated_end_date', today),
-    supabase
-      .from('transactions')
-      .select('id, amount')
-      .eq('status', 'PENDENTE')
-      .lt('due_date', today),
-    supabase
-      .from('transactions')
-      .select('id, amount')
-      .eq('status', 'PENDENTE')
-      .gte('due_date', today)
-      .lte('due_date', nextWeek.toISOString().split('T')[0]),
-    supabase
-      .from('products')
-      .select('id, quantity, min_quantity')
-      .eq('active', true),
-    supabase
-      .from('quotes')
-      .select('id')
-      .eq('status', 'SENT')
-      .lt('created_at', fifteenDaysAgo.toISOString()),
-  ]);
+  ] = await Promise.all(queries);
 
   if (delayedProjects && delayedProjects.length > 0) {
     alertsList.push({
@@ -144,10 +168,12 @@ const getAlertStyles = (type: Alert['type']) => {
 };
 
 export function SmartAlerts() {
+  const { user } = useAuth();
   const { data: alerts = [], isLoading: loading } = useQuery({
-    queryKey: ['smart-alerts'],
-    queryFn: fetchAlerts,
+    queryKey: ['smart-alerts', user?.id, user?.role],
+    queryFn: () => fetchAlerts(user?.role || '', user?.id || ''),
     staleTime: 5 * 60 * 1000,
+    enabled: !!user?.id
   });
 
   if (loading) {
