@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Loader2, FolderKanban, User, Calendar, ArrowRight, Search, Filter } from 'lucide-react';
-import { projectService } from '@/services/projectService';
+import { projectService, Project } from '@/services/projectService';
 import { useAuth } from '@/hooks/use-auth';
 import { ProjectModal } from '@/components/projects/ProjectModal';
 import { calculateProjectProgress } from '@/components/projects/projectStagesConfig';
@@ -65,9 +66,6 @@ const isProjectCompletedForRole = (
 
 export default function MyArea() {
   const { user, hasRole } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [clientNames, setClientNames] = useState<Record<string, string>>({});
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,52 +75,42 @@ export default function MyArea() {
   const userRole = user?.role || 'VENDEDOR';
   const userId = user?.id;
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true);
-    try {
-      const allProjects = await projectService.getAll();
-      
-      // MASTER e DEV veem todos os projetos
-      // Outros roles veem projetos que:
-      // 1. Estão atualmente no seu setor (em execução)
-      // 2. Já passaram pelo seu setor (concluídos para mim)
-      let filteredProjects: Project[] = [];
-      
-      if (hasRole(['MASTER', 'DEV'])) {
-        filteredProjects = allProjects;
-      } else {
-        filteredProjects = allProjects.filter(p => {
-          const assignedRole = p.assigned_role;
-          const assignedTo = p.assigned_to;
-          
-          // Projeto está ativo para mim OU já passou pelo meu setor
-          return isProjectActiveForRole(p.status, assignedRole, userRole, assignedTo, userId) || 
-                 isProjectCompletedForRole(p.status, assignedRole, userRole, assignedTo, userId);
-        });
-      }
+  const { data: allProjects = [], isLoading: loading } = useQuery({
+    queryKey: ['projects-all'],
+    queryFn: projectService.getAll,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
 
-      setProjects(filteredProjects);
-
-      const clientIds = [...new Set(filteredProjects.map(p => p.client_id).filter(Boolean))] as string[];
-      if (clientIds.length > 0) {
-        const { data: clientsData } = await supabase
-          .from('clients')
-          .select('id, name')
-          .in('id', clientIds);
-        const names: Record<string, string> = {};
-        (clientsData || []).forEach(c => { names[c.id] = c.name; });
-        setClientNames(names);
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    } finally {
-      setLoading(false);
+  const projects = useMemo(() => {
+    if (hasRole(['MASTER', 'DEV'])) {
+      return allProjects;
     }
-  }, [hasRole, userRole, userId]);
+    return allProjects.filter(p => {
+      const assignedRole = p.assigned_role;
+      const assignedTo = p.assigned_to;
+      return isProjectActiveForRole(p.status, assignedRole, userRole, assignedTo, userId) || 
+             isProjectCompletedForRole(p.status, assignedRole, userRole, assignedTo, userId);
+    });
+  }, [allProjects, hasRole, userRole, userId]);
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  // Carregar nomes dos clientes
+  const { data: clientNames = {} } = useQuery({
+    queryKey: ['client-names', projects.length],
+    queryFn: async () => {
+      const clientIds = [...new Set(projects.map(p => p.client_id).filter(Boolean))] as string[];
+      if (clientIds.length === 0) return {};
+      
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, name')
+        .in('id', clientIds);
+        
+      const names: Record<string, string> = {};
+      (clientsData || []).forEach(c => { names[c.id] = c.name; });
+      return names;
+    },
+    enabled: projects.length > 0,
+  });
 
   const filteredAndSortedProjects = useMemo(() => {
     let result = [...projects];
