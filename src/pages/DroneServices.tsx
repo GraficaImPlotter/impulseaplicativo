@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Plane, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
+  Plane, Activity, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
   Loader2, Filter, ChevronRight, MoreHorizontal, Clock,
   CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2
 } from 'lucide-react';
