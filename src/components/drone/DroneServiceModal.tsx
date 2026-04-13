@@ -262,16 +262,23 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
 
     try {
       setLoading(true);
+      
+      let finalClientName = formData.client_name;
+      if (!isManualClient && formData.client_id) {
+        const selected = clients.find(c => c.id === formData.client_id);
+        if (selected) finalClientName = selected.name;
+      }
+
       const newService = await droneService.create({
         client_id: isManualClient ? undefined : formData.client_id,
-        client_name: isManualClient ? formData.client_name : undefined,
+        client_name: finalClientName,
         client_phone: isManualClient ? formData.client_phone : undefined,
         client_document: isManualClient ? formData.client_document : undefined,
         client_address_street: isManualClient ? formData.client_address_street : undefined,
         technician_id: formData.technician_id || undefined,
         location_link: formData.location_link,
         area_hectares: parseFloat(formData.area_hectares) || undefined,
-        service_description: formData.service_description || 'Serviço de Drone', // Campo obrigatório
+        service_description: formData.service_description || 'Serviço de Drone',
         status: 'PENDENTE'
       });
 
@@ -328,9 +335,9 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 <SelectTrigger className={cn(
                   "w-[180px] h-10 font-bold border-2 transition-all",
                   status === 'PENDENTE' && "border-amber-500/30 text-amber-600 bg-amber-50",
-                  status === 'EM_ANALISE' && "border-blue-500/30 text-blue-600 bg-blue-50",
-                  status === 'CONCLUIDA' && "border-green-500/30 text-green-600 bg-green-50",
-                  status === 'CANCELADA' && "border-red-500/30 text-red-600 bg-red-50"
+                  status === 'TECNICO' && "border-indigo-500/30 text-indigo-600 bg-indigo-50",
+                  status === 'REVISAO' && "border-purple-500/30 text-purple-600 bg-purple-50",
+                  status === 'FINALIZADO' && "border-emerald-500/30 text-emerald-600 bg-emerald-50"
                 )}>
                   <SelectValue />
                 </SelectTrigger>
