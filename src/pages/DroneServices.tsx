@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Activity, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
+  Plane, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
   Loader2, Filter, ChevronRight, MoreHorizontal, Clock,
   CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2
 } from 'lucide-react';
+import { getUsers, UserWithRole } from '@/services/userService';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
 import { Button } from '@/components/ui/button';
@@ -39,13 +40,26 @@ export default function DroneServices() {
   const [selectedService, setSelectedService] = useState<DroneService | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<DroneServiceStatus | null>(null);
+  const [pilots, setPilots] = useState<UserWithRole[]>([]);
 
   const { data: services = [], isLoading, refetch } = useQuery({
     queryKey: ['drone-services'],
     queryFn: droneService.getAll,
   });
 
+  // Carregar pilotos para mapear nomes localmente
+  useState(() => {
+    getUsers().then(setPilots).catch(console.error);
+  });
+
+  const technicianNames = pilots.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {} as Record<string, string>);
+
   const filteredServices = services.filter((s) => {
+    // Regra: Piloto vê apenas o que foi designado a ele
+    if (user?.role === 'PILOTO' && s.technician_id !== user.id) {
+      return false;
+    }
+
     const searchLower = (search || '').toLowerCase();
     const clientName = (s.client?.name || s.client_name || '').toLowerCase();
     const location = (s.location_link || '').toLowerCase();
@@ -133,7 +147,7 @@ export default function DroneServices() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-[22px] bg-primary/10 flex items-center justify-center text-primary rotate-3 group-hover:rotate-0 transition-transform duration-500">
-              <Activity className="h-6 w-6" />
+              <Plane className="h-6 w-6" />
             </div>
             <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic">
               Serviços <span className="text-primary">Drone</span>
@@ -286,7 +300,7 @@ export default function DroneServices() {
                           <User className="h-3 w-3" />
                         </div>
                         <span className="text-xs font-bold text-foreground">
-                          {service.technician?.name || 'Não atribuído'}
+                          {s.technician_id ? (technicianNames[s.technician_id] || 'Piloto Local') : 'Não atribuído'}
                         </span>
                       </div>
                     </TableCell>
@@ -372,7 +386,9 @@ export default function DroneServices() {
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3 text-primary/60" />
-                          <span className="text-[10px] font-bold text-foreground/80">{service.technician?.name || 'Sem piloto'}</span>
+                          <span className="text-[10px] font-bold text-foreground/80">
+                            {service.technician_id ? (technicianNames[service.technician_id] || 'Piloto') : 'Sem piloto'}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between pt-3 border-t border-border/50">
