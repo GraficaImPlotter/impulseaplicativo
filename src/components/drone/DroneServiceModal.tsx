@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Loader2, Save, Send, Trash2, User, MapPin, 
+  Loader2, Save, Send, Trash2, User, MapPin, Plus as PlusIcon,
   Settings2, Activity, MessageCircle, Clock, CheckCircle2
 } from 'lucide-react';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
@@ -384,7 +384,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
           <div className="flex flex-col p-8 space-y-6">
             <div className="flex items-center gap-4 mb-2">
               <div className="w-14 h-14 rounded-[22px] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                <Plus className="h-7 w-7" />
+                <PlusIcon className="h-7 w-7" />
               </div>
               <div>
                 <DialogTitle className="text-2xl font-black tracking-tight">Nova OS Drone</DialogTitle>
