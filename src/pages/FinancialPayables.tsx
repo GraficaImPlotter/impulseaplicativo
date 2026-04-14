@@ -47,6 +47,8 @@ export default function FinancialPayables() {
   
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [groupDeleteOpen, setGroupDeleteOpen] = useState(false);
+  const [transactionToDeleteGroup, setTransactionToDeleteGroup] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<{
     startDate: Date;
     endDate: Date;
@@ -145,6 +147,19 @@ export default function FinancialPayables() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast.success('Removido com sucesso');
     },
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: string) => transactionService.deleteGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Todo o grupo de parcelas foi removido');
+      setGroupDeleteOpen(false);
+      setTransactionToDeleteGroup(null);
+    },
+    onError: () => {
+      toast.error('Erro ao remover o grupo');
+    }
   });
 
   const markAsPaidMutation = useMutation({
@@ -313,7 +328,14 @@ export default function FinancialPayables() {
                                 </TableCell>
                                 <TableCell>
                                     <div>
-                                        <p className="font-semibold text-sm">{t.description}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-sm">{t.description}</p>
+                                            {t.total_installments && t.total_installments > 1 && (
+                                                <Badge variant="outline" className="text-[10px] font-black h-5 px-1.5 bg-rose-100 text-rose-700 border-rose-200">
+                                                    {t.installment_number} / {t.total_installments}
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <div className="flex gap-2 mt-0.5">
                                             {t.category && <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded uppercase font-bold text-muted-foreground opacity-70">{t.category}</span>}
                                             {t.account_id && <span className="text-[10px] text-impulse-gold font-bold uppercase">{accounts.find(a => a.id === t.account_id)?.name}</span>}
@@ -346,8 +368,19 @@ export default function FinancialPayables() {
                                                 <CheckCircle2 className="h-4 w-4" /> Baixar Pagamento
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => deleteMutation.mutate(t.id)} className="gap-2 cursor-pointer text-rose-600">
-                                                <Trash2 className="h-4 w-4" /> Excluir
+                                                <Trash2 className="h-4 w-4" /> Excluir Parcela
                                             </DropdownMenuItem>
+                                            {t.total_installments && t.total_installments > 1 && (
+                                                <DropdownMenuItem 
+                                                    onClick={() => {
+                                                        setTransactionToDeleteGroup(t);
+                                                        setGroupDeleteOpen(true);
+                                                    }} 
+                                                    className="gap-2 cursor-pointer text-rose-700 font-bold bg-rose-50 dark:bg-rose-900/20"
+                                                >
+                                                    <Trash2 className="h-4 w-4" /> Excluir Grupo Inteiro
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
@@ -425,6 +458,32 @@ export default function FinancialPayables() {
               }}
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={groupDeleteOpen} onOpenChange={setGroupDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-rose-600">Excluir Grupo de Parcelas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Atenção! Esta ação excluirá **TODAS** as {transactionToDeleteGroup?.total_installments} parcelas desta despesa ({transactionToDeleteGroup?.description}). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTransactionToDeleteGroup(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 font-bold text-white shadow-lg shadow-rose-200"
+              onClick={() => {
+                if (transactionToDeleteGroup) {
+                  const parentId = transactionToDeleteGroup.parent_id || transactionToDeleteGroup.id;
+                  deleteGroupMutation.mutate(parentId);
+                }
+              }}
+              disabled={deleteGroupMutation.isPending}
+            >
+              {deleteGroupMutation.isPending ? "Excluindo..." : "Sim, excluir todo o grupo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

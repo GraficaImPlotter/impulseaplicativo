@@ -257,6 +257,16 @@ export const transactionService = {
     if (error) throw error;
   },
 
+  async deleteGroup(parentId: string): Promise<void> {
+    // We delete the parent transaction AND all other transactions that have this ID as their parent_id
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .or(`id.eq.${parentId},parent_id.eq.${parentId}`);
+
+    if (error) throw error;
+  },
+
   async markAsPaid(id: string): Promise<Transaction> {
     const { data, error } = await supabase
       .from('transactions')
