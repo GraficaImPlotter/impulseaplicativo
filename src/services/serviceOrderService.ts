@@ -260,7 +260,8 @@ export const serviceOrderService = {
     const { data: userData } = await supabase.auth.getUser();
 
     const payload = attachments.map((attachment) => ({
-      service_order_id: serviceOrderId,
+      service_order_id: serviceOrderId || null,
+      drone_service_id: attachment.drone_service_id || null,
       name: attachment.name,
       url: attachment.url,
       path: attachment.path ?? null,

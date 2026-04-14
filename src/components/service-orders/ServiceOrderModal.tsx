@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, addDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { X, Send, Paperclip, FileDown, AlertTriangle, MessageSquare, Loader2, User, Calendar, Clock } from 'lucide-react';
+import { X, Send, Paperclip, FileDown, AlertTriangle, MessageSquare, Loader2, User, Calendar, Clock, Upload, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { ServiceOrder, serviceOrderService } from '@/services/serviceOrderService';
 import { serviceOrderLogService } from '@/services/serviceOrderLogService';
 import { clientService } from '@/services/clientService';
-import { serviceTypeService } from '@/services/serviceTypeService';
 import { getUsers } from '@/services/userService';
+import { storageService } from '@/services/storageService';
 
 interface ServiceOrderModalProps {
   serviceOrder: ServiceOrder | null;
@@ -155,8 +155,10 @@ export function ServiceOrderModal({
     try {
       await serviceOrderLogService.create({
         service_order_id: serviceOrder.id,
-        message: newLog,
-        created_by: user?.id
+        description: newLog,
+        sector: 'POS_VENDA', // Setor padrão para logs manuais
+        created_by_name: user?.name || 'Sistema',
+        created_by_role: user?.role || 'VENDEDOR'
       });
       setNewLog('');
     } catch (error) {
@@ -210,6 +212,13 @@ export function ServiceOrderModal({
                 className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-2 py-2 font-bold text-xs uppercase tracking-wider"
               >
                 Histórico e Notas
+              </TabsTrigger>
+              <TabsTrigger 
+                value="attachments" 
+                disabled={!serviceOrder}
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-2 py-2 font-bold text-xs uppercase tracking-wider"
+              >
+                Anexos e Fotos
               </TabsTrigger>
             </TabsList>
           </div>
@@ -388,12 +397,112 @@ export function ServiceOrderModal({
                             {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
                           </span>
                         </div>
-                        <p className="text-sm text-foreground leading-relaxed">{log.message}</p>
+                        <p className="text-sm text-foreground leading-relaxed">{log.description}</p>
                       </div>
                     ))
                   )}
                 </div>
               </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="attachments" className="mt-0 h-full">
+              <div className="space-y-4 h-[450px] flex flex-col">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider">Arquivos Anexados</h3>
+                  </div>
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2 font-black text-[10px] border-primary/20 text-primary hover:bg-primary/5 transition-all active:scale-95" onClick={() => document.getElementById('file-upload-os')?.click()}>
+                    <Upload className="h-3 w-3" /> FAZER UPLOAD
+                  </Button>
+                  <input
+                    id="file-upload-os"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0 || !serviceOrder) return;
+                      
+                      try {
+                        setLoading(true);
+                        const newAttachments = [];
+                        for (const file of Array.from(files)) {
+                          const folder = `service-orders/${serviceOrder.id}`;
+                          const result = await storageService.upload(file, folder);
+                          newAttachments.push({
+                            name: file.name,
+                            url: result.url,
+                            path: result.path,
+                            type: file.type,
+                            sector: 'POS_VENDA',
+                            uploadedAt: new Date().toISOString()
+                          });
+                        }
+                        await serviceOrderService.addAttachments(serviceOrder.id, newAttachments);
+                        toast({ title: "Sucesso", description: `${newAttachments.length} anexo(s) enviado(s).` });
+                        onSave(); // Refresh to get new attachments
+                      } catch (err) {
+                        toast({ title: "Erro", description: "Falha ao enviar anexos.", variant: "destructive" });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  />
+                </div>
+
+                <ScrollArea className="flex-1 rounded-2xl border border-border/50 bg-muted/10 p-4">
+                  {!serviceOrder?.attachments || serviceOrder.attachments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground opacity-50 gap-3">
+                      <Paperclip className="h-10 w-10" />
+                      <p className="text-sm font-medium">Nenhum anexo encontrado</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {serviceOrder.attachments.map((attachment) => (
+                        <div key={attachment.id || attachment.url} className="group relative aspect-square rounded-2xl border border-border overflow-hidden bg-card hover:border-primary/50 transition-all shadow-sm">
+                          {attachment.type?.startsWith('image/') ? (
+                            <img src={attachment.url} alt={attachment.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 gap-2">
+                              <Paperclip className="h-8 w-8 text-muted-foreground" />
+                              <span className="text-[10px] text-center line-clamp-2 font-medium">{attachment.name}</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button 
+                              size="icon" 
+                              variant="secondary" 
+                              className="h-8 w-8 rounded-full"
+                              onClick={() => window.open(attachment.url, '_blank')}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="destructive" 
+                              className="h-8 w-8 rounded-full"
+                              onClick={async () => {
+                                if (!attachment.id) return;
+                                try {
+                                  if (attachment.path) await storageService.delete(attachment.path);
+                                  await serviceOrderService.deleteAttachment(attachment.id);
+                                  toast({ title: "Removido", description: "Anexo excluído com sucesso." });
+                                  onSave();
+                                } catch (err) {
+                                  toast({ title: "Erro", description: "Falha ao remover anexo.", variant: "destructive" });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
             </TabsContent>
           </div>
         </Tabs>

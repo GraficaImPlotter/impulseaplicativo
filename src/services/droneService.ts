@@ -14,6 +14,8 @@ export interface DroneService {
   area_hectares?: number;
   service_description?: string;
   location_link?: string;
+  opening_date?: string;
+  execution_date?: string;
   created_at: string;
   updated_at: string;
   display_code?: string;
@@ -23,6 +25,7 @@ export interface DroneService {
   technician?: {
     name: string;
   };
+  attachments?: any[];
 }
 
 export const droneService = {
@@ -30,7 +33,7 @@ export const droneService = {
     try {
       const { data, error } = await (supabase
         .from('drone_services' as any) as any)
-        .select('*')
+        .select('*, attachments:service_order_attachments(*)')
         .order('created_at', { ascending: false });
 
       if (error) {

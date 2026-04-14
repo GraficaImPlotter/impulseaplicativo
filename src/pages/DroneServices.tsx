@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Plane, Activity, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
-  Loader2, Filter, ChevronRight, MoreHorizontal, Clock,
-  CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2
+  CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2, Trash2
 } from 'lucide-react';
 import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
@@ -320,7 +318,8 @@ export default function DroneServices() {
                 <TableHead className="font-black text-[10px] uppercase tracking-widest">Localização</TableHead>
                 <TableHead className="font-black text-[10px] uppercase tracking-widest">Área</TableHead>
                 <TableHead className="font-black text-[10px] uppercase tracking-widest">Status</TableHead>
-                <TableHead className="w-[120px] font-black text-[10px] uppercase tracking-widest">Data</TableHead>
+                <TableHead className="w-[120px] font-black text-[10px] uppercase tracking-widest">Abertura</TableHead>
+                <TableHead className="w-[80px] font-black text-[10px] uppercase tracking-widest text-right pr-8">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -376,8 +375,28 @@ export default function DroneServices() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-xs font-medium text-muted-foreground">
-                      {safeFormatDate(service.created_at)}
+                    <TableCell className="py-4 text-xs font-bold text-foreground">
+                      {service.opening_date ? format(new Date(service.opening_date + 'T00:00:00'), 'dd/MM/yy') : safeFormatDate(service.created_at)}
+                    </TableCell>
+                    <TableCell className="py-4 text-right pr-8">
+                      {(user?.role === 'MASTER' || user?.role === 'DEV') && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Excluir esta OS permanentemente?')) {
+                              droneService.delete(service.id).then(() => {
+                                toast.success('OS excluída');
+                                refetch();
+                              });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -452,9 +471,27 @@ export default function DroneServices() {
                         <Badge variant="outline" className="text-[9px] font-black h-5 px-1 bg-muted/30 border-none uppercase">
                           {service.display_code || (service.id ? `#${service.id.slice(0, 6)}` : '---')}
                         </Badge>
-                        <span className="text-[9px] font-bold text-muted-foreground">
-                          {safeFormatDate(service.created_at, "dd MMM")}
+                        <span className="text-[9px] font-bold text-muted-foreground mr-1">
+                          {service.opening_date ? format(new Date(service.opening_date + 'T00:00:00'), "dd MMM") : safeFormatDate(service.created_at, "dd MMM")}
                         </span>
+                        {(user?.role === 'MASTER' || user?.role === 'DEV') && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Excluir esta OS?')) {
+                                droneService.delete(service.id).then(() => {
+                                  toast.success('OS excluída');
+                                  refetch();
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
