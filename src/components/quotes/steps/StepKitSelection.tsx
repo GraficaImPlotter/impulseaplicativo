@@ -133,7 +133,7 @@ export function StepKitSelection({
       selectKit(newKit);
       
       // Switch to kits tab and reload
-      setActiveTab('kits');
+      setStepState({ activeTab: 'kits' });
       loadData();
     } catch (error) {
       toast.error('Erro ao criar kit');

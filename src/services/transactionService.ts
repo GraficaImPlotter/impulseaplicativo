@@ -168,21 +168,24 @@ export const transactionService = {
   async createBatch(transaction: CreateTransactionData, installments: number): Promise<Transaction[]> {
     const { data: { user } } = await supabase.auth.getUser();
     const createdTransactions: Transaction[] = [];
-    const parentId = crypto.randomUUID();
     const { splits, ...txData } = transaction;
 
+    let parentId: string | undefined = undefined;
+
     for (let i = 1; i <= installments; i++) {
-        const dueDate = new Date(transaction.due_date);
-        dueDate.setMonth(dueDate.getMonth() + (i - 1));
+        // Calculate due date properly without timezone shifts
+        const baseDate = new Date(transaction.due_date + 'T12:00:00');
+        baseDate.setMonth(baseDate.getMonth() + (i - 1));
+        const dueDate = baseDate.toISOString().split('T')[0];
 
         const installmentData = {
             ...txData,
-            due_date: dueDate.toISOString().split('T')[0],
+            due_date: dueDate,
             installment_number: i,
             total_installments: installments,
-            parent_id: i === 1 ? undefined : parentId,
+            parent_id: parentId,
             created_by: user?.id,
-            amount: transaction.amount / installments
+            amount: Number((transaction.amount / installments).toFixed(2))
         };
 
         const { data, error } = await supabase
@@ -191,7 +194,15 @@ export const transactionService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error(`Error creating installment ${i}:`, error);
+            throw error;
+        }
+
+        // The first installment's ID becomes the parent_id for the rest
+        if (i === 1) {
+            parentId = data.id;
+        }
         
         // Handle splits for each installment
         if (splits && splits.length > 0) {
@@ -199,7 +210,7 @@ export const transactionService = {
                 transaction_id: data.id,
                 cost_center_id: s.cost_center_id,
                 percentage: s.percentage,
-                amount: (s.amount || 0) / installments
+                amount: Number(((s.amount || 0) / installments).toFixed(2))
             }));
             await supabase.from('transaction_splits').insert(splitInserts);
         }

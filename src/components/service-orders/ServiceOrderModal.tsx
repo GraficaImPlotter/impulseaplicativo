@@ -65,7 +65,7 @@ export function ServiceOrderModal({
   });
 
   const technicians = useMemo(() => 
-    allUsers.filter(u => ['MASTER', 'TECNICO', 'ENGENHEIRO', 'DEV'].includes(u.role)), 
+    allUsers.filter(u => ['TECNICO', 'ENGENHEIRO'].includes(u.role)), 
     [allUsers]
   );
 

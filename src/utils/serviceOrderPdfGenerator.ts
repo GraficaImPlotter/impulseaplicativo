@@ -284,15 +284,25 @@ export async function generateServiceOrderPDF(
       }
 
       try {
-        const base64 = await storageService.getImageAsBase64(img.path || img.url);
+        console.log(`Loading image for PDF: ${img.name}`);
+        let base64 = await storageService.getImageAsBase64(img.path || img.url);
+        
         if (base64) {
+          // Ensure base64 has correctly formatted data URI prefix
+          if (!base64.startsWith('data:image')) {
+            base64 = `data:image/jpeg;base64,${base64}`;
+          }
+          
           doc.addImage(base64, 'JPEG', x, yPos, imgWidth, imgHeight, undefined, 'FAST');
           doc.setFontSize(7);
           doc.setTextColor(100, 100, 100);
           doc.text(img.name, x, yPos + imgHeight + 4, { maxWidth: imgWidth });
+        } else {
+          console.warn(`No base64 data for image: ${img.name}`);
+          throw new Error("Base64 empty");
         }
       } catch (err) {
-        console.error("Error adding image to PDF", err);
+        console.error(`Error adding image ${img.name} to PDF:`, err);
         doc.rect(x, yPos, imgWidth, imgHeight);
         doc.text("Erro ao carregar imagem", x + 5, yPos + imgHeight/2);
       }

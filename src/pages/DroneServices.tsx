@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2, Trash2,
   Loader2, Plane, List, LayoutGrid, Plus as PlusIcon, Search, Filter,
-  Clock, Activity, MoreHorizontal
+  Clock, Activity, MoreHorizontal, FileDown
 } from 'lucide-react';
 import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService } from '@/services/droneLogService';
+import { companySettingsService, CompanySettings } from '@/services/companySettingsService';
+import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +54,11 @@ export default function DroneServices() {
   const { data: services = [], isLoading, refetch } = useQuery({
     queryKey: ['drone-services'],
     queryFn: droneService.getAll,
+  });
+
+  const { data: companySettings } = useQuery({
+    queryKey: ['company-settings'],
+    queryFn: companySettingsService.get
   });
 
   const handleServiceClick = (service: DroneService) => {
@@ -381,24 +388,38 @@ export default function DroneServices() {
                       {service.opening_date ? safeFormatDate(service.opening_date + 'T00:00:00', 'dd/MM/yy') : safeFormatDate(service.created_at)}
                     </TableCell>
                     <TableCell className="py-4 text-right pr-8">
-                      {(user?.role === 'MASTER' || user?.role === 'DEV') && (
+                      <div className="flex items-center justify-end gap-1">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="h-8 w-8 rounded-lg text-primary hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm('Excluir esta OS permanentemente?')) {
-                              droneService.delete(service.id).then(() => {
-                                toast.success('OS excluída');
-                                refetch();
-                              });
-                            }
+                            generateDroneServicePDF(service, companySettings);
                           }}
+                          title="Baixar PDF"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <FileDown className="h-4 w-4" />
                         </Button>
-                      )}
+                        {(user?.role === 'MASTER' || user?.role === 'DEV') && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Excluir esta OS permanentemente?')) {
+                                droneService.delete(service.id).then(() => {
+                                  toast.success('OS excluída');
+                                  refetch();
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

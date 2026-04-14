@@ -21,6 +21,8 @@ import { serviceOrderService } from '@/services/serviceOrderService';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService, DroneServiceLog } from '@/services/droneLogService';
 import { clientService, Client } from '@/services/clientService';
+import { companySettingsService } from '@/services/companySettingsService';
+import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
@@ -49,7 +51,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
   const [loading, setLoading] = useState(false);
   const [newLog, setNewLog] = useState('');
   const [status, setStatus] = useState<DroneServiceStatus>('PENDENTE');
-  const [isManualClient, setIsManualClient] = useState(false);
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -83,6 +84,12 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     queryKey: ['drone-service-logs', service?.id],
     queryFn: () => droneLogService.getByServiceId(service!.id),
     enabled: open && !!service?.id
+  });
+
+  const { data: companySettings } = useQuery({
+    queryKey: ['company-settings'],
+    queryFn: companySettingsService.get,
+    enabled: open
   });
 
   // Masks and Utility functions
@@ -155,7 +162,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         });
         setIsEditing(false);
       } else {
-        setStatus('PENDENTE');
         setFormData({
           client_id: '',
           client_name: '',
@@ -169,7 +175,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
           opening_date: format(new Date(), 'yyyy-MM-dd'),
           execution_date: ''
         });
-        setIsManualClient(false);
         setIsEditing(false);
       }
     }
@@ -259,23 +264,15 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
   };
 
   const handleCreateService = async () => {
-    if (isManualClient && !formData.client_name.trim()) { toast.error('Informe o nome do cliente'); return; }
-    if (!isManualClient && !formData.client_id) { toast.error('Selecione um cliente'); return; }
+    if (!formData.client_name.trim()) { toast.error('Informe o nome do cliente'); return; }
 
     try {
       setLoading(true);
-      let finalClientName = formData.client_name;
-      if (!isManualClient && formData.client_id) {
-        const selected = clients.find(c => c.id === formData.client_id);
-        if (selected) finalClientName = selected.name;
-      }
-
       const newService = await droneService.create({
-        client_id: isManualClient ? undefined : formData.client_id,
-        client_name: finalClientName,
-        client_phone: isManualClient ? formData.client_phone : undefined,
-        client_document: isManualClient ? formData.client_document : undefined,
-        client_address_street: isManualClient ? formData.client_address_street : undefined,
+        client_name: formData.client_name,
+        client_phone: formData.client_phone || undefined,
+        client_document: formData.client_document || undefined,
+        client_address_street: formData.client_address_street || undefined,
         technician_id: formData.technician_id || undefined,
         location_link: formData.location_link,
         area_hectares: parseFloat(formData.area_hectares) || undefined,
@@ -323,6 +320,15 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                     <TabsTrigger value="history" className="rounded-lg px-4 h-8 text-xs font-bold uppercase tracking-wider">Histórico</TabsTrigger>
                     <TabsTrigger value="attachments" className="rounded-lg px-4 h-8 text-xs font-bold uppercase tracking-wider flex gap-2"><Paperclip className="h-3 w-3" /> Anexos</TabsTrigger>
                   </TabsList>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => generateDroneServicePDF(service, companySettings)} 
+                    className="rounded-xl h-10 w-10 hover:bg-muted/50 text-primary"
+                    title="Baixar PDF"
+                  >
+                    <FileDown className="h-5 w-5" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-xl h-10 w-10 hover:bg-muted/50"><X className="h-5 w-5" /></Button>
                 </div>
               </div>
@@ -650,35 +656,16 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
               <div className="col-span-2 space-y-4 p-5 bg-muted/30 rounded-[32px] border border-border/50">
                 <div className="flex items-center justify-between px-1">
                   <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground/80">Identificação do Cliente</Label>
-                  <div className="flex items-center gap-3 bg-background/50 px-3 py-1.5 rounded-full border border-border shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Manual</span>
-                    <Switch checked={isManualClient} onCheckedChange={setIsManualClient} className="scale-90 data-[state=checked]:bg-primary" />
-                  </div>
                 </div>
 
-                {isManualClient ? (
-                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                    <Input placeholder="Nome completo do cliente..." value={formData.client_name} onChange={(e) => setFormData({ ...formData, client_name: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input placeholder="Telefone (WhatsApp)" value={formData.client_phone} onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
-                      <Input placeholder="CPF ou CNPJ" value={formData.client_document} onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
-                    </div>
-                    <Input placeholder="Endereço completo" value={formData.client_address_street} onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <Input placeholder="Nome completo do cliente (Obrigatório)..." value={formData.client_name} onChange={(e) => setFormData({ ...formData, client_name: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input placeholder="Telefone (Opcional)" value={formData.client_phone} onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                    <Input placeholder="CPF ou CNPJ (Opcional)" value={formData.client_document} onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
                   </div>
-                ) : (
-                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                    <Select value={formData.client_id} onValueChange={(val) => setFormData({ ...formData, client_id: val })}>
-                      <SelectTrigger className="h-12 rounded-2xl bg-background border-border">
-                        <SelectValue placeholder="Selecione um cliente do sistema" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        {clients.map(c => (
-                          <SelectItem key={c.id} value={c.id} className="rounded-xl">{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                  <Input placeholder="Endereço completo (Opcional)" value={formData.client_address_street} onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -687,26 +674,26 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                   <Input type="date" value={formData.opening_date} onChange={(e) => setFormData({ ...formData, opening_date: e.target.value })} className="h-12 rounded-2xl bg-background border-border" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Piloto Responsável</Label>
-                  <Select value={formData.technician_id} onValueChange={(val) => setFormData({ ...formData, technician_id: val })}>
-                    <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
-                      <SelectValue placeholder="Selecionar Piloto" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      {pilots.map(p => (
-                        <SelectItem key={p.id} value={p.id} className="rounded-xl">{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Área (ha)</Label>
+                  <div className="relative group">
+                    <Settings2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input type="number" step="0.01" placeholder="Ex: 50.5" value={formData.area_hectares} onChange={(e) => setFormData({ ...formData, area_hectares: e.target.value })} className="h-12 pl-12 rounded-2xl border-border bg-card" />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Área (ha)</Label>
-                <div className="relative group">
-                  <Settings2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input type="number" step="0.01" placeholder="Ex: 50.5" value={formData.area_hectares} onChange={(e) => setFormData({ ...formData, area_hectares: e.target.value })} className="h-12 pl-12 rounded-2xl border-border bg-card" />
-                </div>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Piloto Responsável</Label>
+                <Select value={formData.technician_id} onValueChange={(val) => setFormData({ ...formData, technician_id: val })}>
+                  <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
+                    <SelectValue placeholder="Selecionar Piloto" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    {pilots.map(p => (
+                      <SelectItem key={p.id} value={p.id} className="rounded-xl">{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="col-span-2 space-y-2">

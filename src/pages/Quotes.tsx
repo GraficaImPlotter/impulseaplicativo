@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, ArrowRight, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, ArrowRight, Trash2, CheckSquare, Square, FileDown } from 'lucide-react';
 import { QuoteWizard } from '@/components/quotes/QuoteWizard';
 import { quoteService, Quote } from '@/services/quoteService';
 import { clientService, Client } from '@/services/clientService';
+import { generateQuotePDF } from '@/utils/pdfGenerator';
 import { cn } from '@/lib/utils';
 import { usePagination } from '@/hooks/use-pagination';
 import { PaginationControls } from '@/components/ui/pagination-controls';
@@ -374,6 +375,16 @@ export default function Quotes() {
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      generateQuotePDF(quote as any);
+                    }}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors text-secondary"
+                    title="Baixar PDF"
+                  >
+                    <FileDown className="h-5 w-5" />
+                  </button>
                   <button className="p-2 hover:bg-muted rounded-lg transition-colors">
                     <ArrowRight className="h-5 w-5 text-muted-foreground" />
                   </button>
