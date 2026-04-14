@@ -125,8 +125,6 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
   const [financeiroDescription, setFinanceiroDescription] = useState('');
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedTargetStage, setSelectedTargetStage] = useState<ProjectStatus | null>(null);
-  const [technicians, setTechnicians] = useState<UserWithRole[]>([]);
-  const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState('');
 
   // Role-based sector access configuration
@@ -273,29 +271,17 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
     setChecklist((prev) => syncChecklistWithTemplate(prev, installationType));
   }, [installationType, project]);
 
-  useEffect(() => {
-    if (!showStageSelector || selectedTargetStage !== 'TECNICO') {
-      setSelectedTechnicianId('');
-      return;
-    }
+  // Use React Query for technicians to ensure data is always available
+  const { data: allUsers = [], isLoading: loadingTechnicians } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    enabled: open
+  });
 
-    const loadTechnicians = async () => {
-      setLoadingTechnicians(true);
-      try {
-        const data = await getUsers();
-        setTechnicians(data.filter(userItem => userItem.role === 'TECNICO'));
-      } catch (error) {
-        console.error('Error loading technicians:', error);
-        toast.error('Erro ao carregar técnicos');
-      } finally {
-        setLoadingTechnicians(false);
-      }
-    };
-
-    if (technicians.length === 0) {
-      loadTechnicians();
-    }
-  }, [selectedTargetStage, showStageSelector, technicians.length]);
+  const technicians = useMemo(() => 
+    allUsers.filter(userItem => userItem.role === 'TECNICO'), 
+    [allUsers]
+  );
 
   const handleCheckChange = async (key: string, checked: boolean) => {
     const newChecklist = { ...checklist, [key]: checked };

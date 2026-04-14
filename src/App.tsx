@@ -64,9 +64,8 @@ const PageLoader = () => (
 
 const AppContent = () => {
   React.useEffect(() => {
-    if (IS_NATIVE_APP) {
-      syncService.prefetchCriticalData();
-    }
+    // Prefetch critical data for both Web and Mobile to ensure lists are ready
+    syncService.prefetchCriticalData();
   }, []);
 
   return (

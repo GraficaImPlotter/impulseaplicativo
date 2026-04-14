@@ -17,7 +17,8 @@ import { getUsers } from '@/services/userService';
  */
 export const syncService = {
   async prefetchCriticalData() {
-    if (!IS_NATIVE_APP) return;
+    // Prefetch critical data to ensure lists are ready across all platforms
+    // (Android uses local cache, Web uses memory cache)
 
     console.log('[SyncService] Iniciando pré-carregamento de dados críticos...');
 

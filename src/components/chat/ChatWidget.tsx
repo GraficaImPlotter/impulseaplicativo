@@ -43,7 +43,6 @@ export function ChatWidget() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Check size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Arquivo muito grande. O limite é 5MB.');
       return;
@@ -103,7 +102,7 @@ export function ChatWidget() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-6 z-[110]">
+    <div className="fixed bottom-6 right-6 z-[110]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -248,24 +247,7 @@ export function ChatWidget() {
         )}
       </AnimatePresence>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "h-14 w-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-500",
-          isOpen 
-            ? "bg-muted text-foreground rotate-90 border border-border" 
-            : "bg-impulse-gold text-white shadow-impulse-gold/20 border-2 border-white/10"
-        )}
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-7 w-7" />}
-        {!isOpen && messages.some(m => m.is_from_dev) && (
-          <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full border-2 border-background flex items-center justify-center animate-bounce">
-            <span className="text-[10px] font-bold text-white">!</span>
-          </div>
-        )}
-      </motion.button>
+      {/* Botão flutuante removido conforme solicitação. O chat agora abre via menu lateral. */}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -10,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Loader2, Save, Send, Trash2, User, MapPin, Plus as PlusIcon,
-  Settings2, Activity, MessageCircle, Clock, CheckCircle2
+  Loader2, Save, Trash2, User, MapPin, Plus as PlusIcon,
+  Settings2, Activity, MessageCircle, Clock
 } from 'lucide-react';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService, DroneServiceLog } from '@/services/droneLogService';
@@ -42,11 +43,8 @@ interface DroneServiceModalProps {
 export function DroneServiceModal({ service, open, onOpenChange, onSave }: DroneServiceModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<DroneServiceLog[]>([]);
   const [newLog, setNewLog] = useState('');
   const [status, setStatus] = useState<DroneServiceStatus>('PENDENTE');
-  const [clients, setClients] = useState<Client[]>([]);
-  const [pilots, setPilots] = useState<UserWithRole[]>([]);
   const [isManualClient, setIsManualClient] = useState(false);
   const [formData, setFormData] = useState({
     client_id: '',
@@ -62,25 +60,40 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
   const [isEditing, setIsEditing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Masks
+  // Data fetching with React Query for reliability and cache reuse
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: clientService.getAll,
+    enabled: open
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    enabled: open
+  });
+
+  const pilots = useMemo(() => allUsers.filter(u => u.role === 'PILOTO'), [allUsers]);
+
+  const { data: logs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ['drone-service-logs', service?.id],
+    queryFn: () => droneLogService.getByServiceId(service!.id),
+    enabled: open && !!service?.id
+  });
+
+  // Masks and Utility functions
   const maskPhone = (v: string) => {
     v = v.replace(/\D/g, "");
     if (v.length > 11) v = v.slice(0, 11);
-    if (v.length > 10) {
-      return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
-    } else {
-      return v.replace(/^(\d{2})(\d{4})(\d{4}).*/, "($1) $2-$3");
-    }
+    if (v.length > 10) return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    return v.replace(/^(\d{2})(\d{4})(\d{4}).*/, "($1) $2-$3");
   };
 
   const maskDocument = (v: string) => {
     v = v.replace(/\D/g, "");
     if (v.length > 14) v = v.slice(0, 14);
-    if (v.length > 11) {
-      return v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
-    } else {
-      return v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, "$1.$2.$3-$4");
-    }
+    if (v.length > 11) return v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
+    return v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, "$1.$2.$3-$4");
   };
 
   const handleGetLocation = () => {
@@ -88,7 +101,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       toast.error('Geolocalização não suportada pelo navegador');
       return;
     }
-    
     toast.info('Obtendo localização atual...');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -109,29 +121,26 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return "-";
       return format(date, fmt, { locale: ptBR });
-    } catch (e) {
-      return "-";
-    }
+    } catch (e) { return "-"; }
   };
 
   useEffect(() => {
     if (open) {
-      loadInitialData();
-        if (service) {
-          setStatus(service.status);
-          setFormData({
-            client_id: service.client_id || '',
-            client_name: service.client_name || '',
-            client_phone: service.client_phone || '',
-            client_document: service.client_document || '',
-            client_address_street: service.client_address_street || '',
-            technician_id: service.technician_id || '',
-            location_link: service.location_link || '',
-            area_hectares: service.area_hectares?.toString() || '',
-            service_description: service.service_description || ''
-          });
-          loadLogs();
-        } else {
+      if (service) {
+        setStatus(service.status);
+        setFormData({
+          client_id: service.client_id || '',
+          client_name: service.client_name || '',
+          client_phone: service.client_phone || '',
+          client_document: service.client_document || '',
+          client_address_street: service.client_address_street || '',
+          technician_id: service.technician_id || '',
+          location_link: service.location_link || '',
+          area_hectares: service.area_hectares?.toString() || '',
+          service_description: service.service_description || ''
+        });
+        setIsEditing(false);
+      } else {
         setStatus('PENDENTE');
         setFormData({
           client_id: '',
@@ -145,39 +154,16 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
           service_description: ''
         });
         setIsManualClient(false);
+        setIsEditing(false);
       }
     }
   }, [service, open]);
-
-  const loadInitialData = async () => {
-    try {
-      const [allClients, allUsers] = await Promise.all([
-        clientService.getAll(),
-        getUsers()
-      ]);
-      setClients(allClients);
-      // REQUISITO: Apenas cargo PILOTO
-      setPilots(allUsers.filter(u => u.role === 'PILOTO'));
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    }
-  };
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [logs]);
-
-  const loadLogs = async () => {
-    if (!service) return;
-    try {
-      const data = await droneLogService.getByServiceId(service.id);
-      setLogs(data);
-    } catch (error) {
-      console.error('Error loading logs:', error);
-    }
-  };
 
   const handleUpdateDetails = async () => {
     if (!service) return;
@@ -190,9 +176,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       });
       toast.success('Informações atualizadas');
       setIsEditing(false);
-      onSave(); // Refresh list
+      onSave();
     } catch (error) {
-      console.error('Error updating details:', error);
       toast.error('Erro ao salvar alterações');
     } finally {
       setLoading(false);
@@ -201,38 +186,25 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
 
   const handleUpdatePilot = async (newPilotId: string) => {
     if (!service) return;
-    const isMasterOrDev = user?.role === 'MASTER' || user?.role === 'DEV';
-    if (!isMasterOrDev) {
+    if (user?.role !== 'MASTER' && user?.role !== 'DEV') {
       toast.error('Apenas MASTER e DEV podem alterar o piloto designado.');
       return;
     }
-
     try {
       const selectedPilot = pilots.find(p => p.id === newPilotId);
       await droneService.update(service.id, { technician_id: newPilotId });
-      
-      await droneLogService.create(
-        service.id, 
-        `Alterou piloto designado para: ${selectedPilot?.name || 'Novo Piloto'}`, 
-        user?.name || 'Sistema'
-      );
-      
+      await droneLogService.create(service.id, `Alterou piloto designado para: ${selectedPilot?.name || 'Novo Piloto'}`, user?.name || 'Sistema');
       toast.success('Piloto atualizado');
-      onSave(); // Refresh list
-      loadLogs(); // Refresh logs in modal
+      onSave();
+      refetchLogs();
     } catch (error) {
-      console.error('Error updating pilot:', error);
       toast.error('Erro ao atualizar piloto');
     }
   };
 
   const handleDelete = async () => {
-    if (!service) return;
-    const isMasterOrDev = user?.role === 'MASTER' || user?.role === 'DEV';
-    if (!isMasterOrDev) return;
-
+    if (!service || (user?.role !== 'MASTER' && user?.role !== 'DEV')) return;
     if (!confirm('Tem certeza que deseja excluir permanentemente esta OS Drone?')) return;
-
     try {
       setLoading(true);
       await droneService.delete(service.id);
@@ -240,7 +212,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
       onSave();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error deleting drone service:', error);
       toast.error('Erro ao excluir OS Drone');
     } finally {
       setLoading(false);
@@ -252,19 +223,11 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     try {
       await droneService.updateStatus(service.id, newStatus);
       setStatus(newStatus);
-      
-      // Auto-log status change
-      await droneLogService.create(
-        service.id, 
-        `Alterou status para: ${newStatus}`, 
-        user?.name || 'Sistema'
-      );
-      
-      loadLogs();
+      await droneLogService.create(service.id, `Alterou status para: ${newStatus}`, user?.name || 'Sistema');
+      refetchLogs();
       toast.success('Status atualizado');
       onSave();
     } catch (error) {
-      console.error('Error updating status:', error);
       toast.error('Erro ao atualizar status');
     }
   };
@@ -274,27 +237,19 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     try {
       await droneLogService.create(service.id, newLog.trim(), user?.name || 'Usuário');
       setNewLog('');
-      loadLogs();
+      refetchLogs();
       toast.success('Comentário registrado');
     } catch (error) {
-      console.error('Error adding log:', error);
       toast.error('Erro ao adicionar comentário');
     }
   };
 
   const handleCreateService = async () => {
-    if (isManualClient && !formData.client_name.trim()) {
-      toast.error('Informe o nome do cliente');
-      return;
-    }
-    if (!isManualClient && !formData.client_id) {
-      toast.error('Selecione um cliente');
-      return;
-    }
+    if (isManualClient && !formData.client_name.trim()) { toast.error('Informe o nome do cliente'); return; }
+    if (!isManualClient && !formData.client_id) { toast.error('Selecione um cliente'); return; }
 
     try {
       setLoading(true);
-      
       let finalClientName = formData.client_name;
       if (!isManualClient && formData.client_id) {
         const selected = clients.find(c => c.id === formData.client_id);
@@ -314,24 +269,16 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         status: 'PENDENTE'
       });
 
-      // Add initial log
-      await droneLogService.create(
-        newService.id, 
-        'OS Drone criada no sistema', 
-        user?.name || 'Sistema'
-      );
-
+      await droneLogService.create(newService.id, 'OS Drone criada no sistema', user?.name || 'Sistema');
       toast.success('OS Drone criada com sucesso');
       onSave();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating drone service:', error);
       toast.error('Erro ao criar OS Drone');
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -360,10 +307,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 </div>
               </div>
               
-              <Select 
-                value={status} 
-                onValueChange={(val) => handleStatusChange(val as DroneServiceStatus)}
-              >
+              <Select value={status} onValueChange={(val) => handleStatusChange(val as DroneServiceStatus)}>
                 <SelectTrigger className={cn(
                   "w-[180px] h-10 font-bold border-2 transition-all",
                   status === 'PENDENTE' && "border-amber-500/30 text-amber-600 bg-amber-50",
@@ -383,7 +327,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-              {/* Left: Info */}
               <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border p-4 md:p-6 space-y-6 overflow-y-auto bg-muted/5 max-h-[40vh] md:max-h-full">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground/70">
@@ -404,9 +347,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                     <span>Localização</span>
                   </div>
                   <div className="p-3 rounded-2xl bg-muted/30 border border-border/50">
-                    <p className="text-xs text-foreground leading-relaxed italic">
-                      {service.location_link || 'Localização não informada'}
-                    </p>
+                    <p className="text-xs text-foreground leading-relaxed italic">{service.location_link || 'Localização não informada'}</p>
                   </div>
                 </div>
 
@@ -427,9 +368,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl shadow-2xl border-border">
                           {pilots.map(p => (
-                            <SelectItem key={p.id} value={p.id} className="rounded-xl">
-                              {p.name}
-                            </SelectItem>
+                            <SelectItem key={p.id} value={p.id} className="rounded-xl">{p.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -444,14 +383,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                       <span>Detalhes Técnicos</span>
                     </div>
                     {(user?.role === 'MASTER' || user?.role === 'DEV') && !isEditing && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setIsEditing(true)}
-                        className="h-7 px-2 text-[10px] font-bold text-primary hover:bg-primary/10"
-                      >
-                        EDITAR
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="h-7 px-2 text-[10px] font-bold text-primary hover:bg-primary/10">EDITAR</Button>
                     )}
                   </div>
                   
@@ -459,44 +391,19 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                     <div className="space-y-4 animate-in fade-in duration-300">
                       <div className="space-y-1">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Área (ha)</Label>
-                        <Input 
-                          type="number" 
-                          value={formData.area_hectares}
-                          onChange={(e) => setFormData({...formData, area_hectares: e.target.value})}
-                          className="h-8 text-xs rounded-xl"
-                        />
+                        <Input type="number" value={formData.area_hectares} onChange={(e) => setFormData({...formData, area_hectares: e.target.value})} className="h-8 text-xs rounded-xl" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Localização</Label>
-                        <Input 
-                          value={formData.location_link}
-                          onChange={(e) => setFormData({...formData, location_link: e.target.value})}
-                          className="h-8 text-xs rounded-xl"
-                        />
+                        <Input value={formData.location_link} onChange={(e) => setFormData({...formData, location_link: e.target.value})} className="h-8 text-xs rounded-xl" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Descrição</Label>
-                        <Textarea 
-                          value={formData.service_description}
-                          onChange={(e) => setFormData({...formData, service_description: e.target.value})}
-                          className="min-h-[80px] text-xs rounded-xl p-2"
-                        />
+                        <Textarea value={formData.service_description} onChange={(e) => setFormData({...formData, service_description: e.target.value})} className="min-h-[80px] text-xs rounded-xl p-2" />
                       </div>
                       <div className="flex gap-2 pt-2">
-                        <Button 
-                          onClick={handleUpdateDetails} 
-                          disabled={loading}
-                          className="flex-1 h-8 text-xs font-bold rounded-xl"
-                        >
-                          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'SALVAR'}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setIsEditing(false)}
-                          className="h-8 text-xs font-bold rounded-xl"
-                        >
-                          CANCELAR
-                        </Button>
+                        <Button onClick={handleUpdateDetails} disabled={loading} className="flex-1 h-8 text-xs font-bold rounded-xl">{loading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'SALVAR'}</Button>
+                        <Button variant="outline" onClick={() => setIsEditing(false)} className="h-8 text-xs font-bold rounded-xl">CANCELAR</Button>
                       </div>
                     </div>
                   ) : (
@@ -508,9 +415,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                       <div className="h-px bg-border/50" />
                       <div className="space-y-2">
                         <span className="text-xs text-muted-foreground font-medium">Descrição:</span>
-                        <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
-                          {service.service_description || 'Sem descrição.'}
-                        </p>
+                        <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{service.service_description || 'Sem descrição.'}</p>
                       </div>
                     </div>
                   )}
@@ -518,88 +423,41 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 
                 <div className="pt-4 mt-auto border-t border-border">
                   {(user?.role === 'MASTER' || user?.role === 'DEV') && (
-                    <Button
-                      variant="ghost"
-                      onClick={handleDelete}
-                      disabled={loading}
-                      className="w-full rounded-2xl text-destructive hover:bg-destructive/10 h-12"
-                    >
-                      <Trash2 className="h-5 w-5 mr-2" />
-                      Excluir OS
+                    <Button variant="ghost" onClick={handleDelete} disabled={loading} className="w-full rounded-2xl text-destructive hover:bg-destructive/10 h-12">
+                      <Trash2 className="h-5 w-5 mr-2" /> Excluir OS
                     </Button>
                   )}
                 </div>
               </div>
 
-              {/* Right: Logs/Activities (Chat Style) */}
               <div className="flex-1 flex flex-col bg-background">
                 <div className="p-4 border-b border-border bg-muted/10 flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-primary" />
                   <span className="text-sm font-bold">Histórico de Atividades</span>
-                  <Badge variant="secondary" className="ml-auto bg-muted text-muted-foreground font-bold">
-                    {logs.length}
-                  </Badge>
+                  <Badge variant="secondary" className="ml-auto bg-muted text-muted-foreground font-bold">{logs.length}</Badge>
                 </div>
-
-                <div 
-                  ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth"
-                >
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
                   {logs.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3 opacity-50">
-                      <div className="w-16 h-16 rounded-3xl bg-muted flex items-center justify-center">
-                        <Clock className="h-8 w-8" />
-                      </div>
+                      <div className="w-16 h-16 rounded-3xl bg-muted flex items-center justify-center"><Clock className="h-8 w-8" /></div>
                       <p className="text-sm font-medium">Inicie o histórico de atividades</p>
                     </div>
                   ) : (
                     logs.map((log) => (
-                      <div 
-                        key={log.id}
-                        className={cn(
-                          "flex flex-col gap-1 max-w-[80%]",
-                          log.created_by === user?.id ? "ml-auto items-end" : "items-start"
-                        )}
-                      >
+                      <div key={log.id} className={cn("flex flex-col gap-1 max-w-[80%]", log.created_by === user?.id ? "ml-auto items-end" : "items-start")}>
                         <div className="flex items-center gap-2 px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                            {log.created_by_name}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/50 italic">
-                            {format(new Date(log.created_at), "HH:mm")}
-                          </span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">{log.created_by_name}</span>
+                          <span className="text-[10px] text-muted-foreground/50 italic">{format(new Date(log.created_at), "HH:mm")}</span>
                         </div>
-                        <div className={cn(
-                          "p-3 rounded-2xl text-sm shadow-sm",
-                          log.created_by === user?.id 
-                            ? "bg-primary text-primary-foreground rounded-tr-none" 
-                            : "bg-muted border border-border rounded-tl-none font-medium text-foreground"
-                        )}>
-                          {log.message}
-                        </div>
+                        <div className={cn("p-3 rounded-2xl text-sm shadow-sm", log.created_by === user?.id ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted border border-border rounded-tl-none font-medium text-foreground")}>{log.message}</div>
                       </div>
                     ))
                   )}
                 </div>
-
-                {/* Input Area */}
                 <div className="p-4 border-t border-border bg-muted/20">
                   <div className="flex items-center gap-2 bg-background rounded-2xl p-2 border border-border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                    <Input 
-                      placeholder="Digitar nova atualização..."
-                      value={newLog}
-                      onChange={(e) => setNewLog(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddLog()}
-                      className="flex-1 border-none focus-visible:ring-0 bg-transparent text-sm h-10"
-                    />
-                    <Button 
-                      onClick={handleAddLog}
-                      disabled={!newLog.trim()}
-                      className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 active:scale-95 transition-all shrink-0"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Salvar
-                    </Button>
+                    <Input placeholder="Digitar nova atualização..." value={newLog} onChange={(e) => setNewLog(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddLog()} className="flex-1 border-none focus-visible:ring-0 bg-transparent text-sm h-10" />
+                    <Button onClick={handleAddLog} disabled={!newLog.trim()} className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 active:scale-95 transition-all shrink-0"><Send className="h-4 w-4 mr-2" />Salvar</Button>
                   </div>
                 </div>
               </div>
@@ -608,9 +466,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         ) : (
           <div className="flex flex-col p-8 space-y-6">
             <div className="flex items-center gap-4 mb-2">
-              <div className="w-14 h-14 rounded-[22px] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                <PlusIcon className="h-7 w-7" />
-              </div>
+              <div className="w-14 h-14 rounded-[22px] bg-primary/10 flex items-center justify-center text-primary shadow-inner"><PlusIcon className="h-7 w-7" /></div>
               <div>
                 <DialogTitle className="text-2xl font-black tracking-tight">Nova OS Drone</DialogTitle>
                 <p className="text-sm text-muted-foreground font-medium">Preencha os dados básicos para iniciar o serviço</p>
@@ -623,49 +479,22 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                   <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground/80">Identificação do Cliente</Label>
                   <div className="flex items-center gap-3 bg-background/50 px-3 py-1.5 rounded-full border border-border shadow-sm">
                     <span className="text-[10px] font-bold uppercase tracking-tighter">Manual</span>
-                    <Switch 
-                      checked={isManualClient}
-                      onCheckedChange={setIsManualClient}
-                      className="scale-90 data-[state=checked]:bg-primary"
-                    />
+                    <Switch checked={isManualClient} onCheckedChange={setIsManualClient} className="scale-90 data-[state=checked]:bg-primary" />
                   </div>
                 </div>
 
                 {isManualClient ? (
                   <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                    <Input 
-                      placeholder="Nome completo do cliente..."
-                      value={formData.client_name}
-                      onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                      className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
-                    />
+                    <Input placeholder="Nome completo do cliente..." value={formData.client_name} onChange={(e) => setFormData({ ...formData, client_name: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
                     <div className="grid grid-cols-2 gap-4">
-                      <Input 
-                        placeholder="Telefone (WhatsApp)"
-                        value={formData.client_phone}
-                        onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })}
-                        className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
-                      />
-                      <Input 
-                        placeholder="CPF ou CNPJ"
-                        value={formData.client_document}
-                        onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })}
-                        className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
-                      />
+                      <Input placeholder="Telefone (WhatsApp)" value={formData.client_phone} onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                      <Input placeholder="CPF ou CNPJ" value={formData.client_document} onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
                     </div>
-                    <Input 
-                      placeholder="Endereço completo"
-                      value={formData.client_address_street}
-                      onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })}
-                      className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20"
-                    />
+                    <Input placeholder="Endereço completo" value={formData.client_address_street} onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
                   </div>
                 ) : (
                   <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                    <Select 
-                      value={formData.client_id}
-                      onValueChange={(val) => setFormData({ ...formData, client_id: val })}
-                    >
+                    <Select value={formData.client_id} onValueChange={(val) => setFormData({ ...formData, client_id: val })}>
                       <SelectTrigger className="h-12 rounded-2xl bg-background border-border">
                         <SelectValue placeholder="Selecione um cliente do sistema" />
                       </SelectTrigger>
@@ -681,10 +510,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Piloto Responsável</Label>
-                <Select 
-                  value={formData.technician_id}
-                  onValueChange={(val) => setFormData({ ...formData, technician_id: val })}
-                >
+                <Select value={formData.technician_id} onValueChange={(val) => setFormData({ ...formData, technician_id: val })}>
                   <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
                     <SelectValue placeholder="Selecionar Piloto" />
                   </SelectTrigger>
@@ -700,75 +526,30 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Área (ha)</Label>
                 <div className="relative group">
                   <Settings2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    placeholder="Ex: 50.5"
-                    value={formData.area_hectares}
-                    onChange={(e) => setFormData({ ...formData, area_hectares: e.target.value })}
-                    className="h-12 pl-12 rounded-2xl border-border bg-card"
-                  />
+                  <Input type="number" step="0.01" placeholder="Ex: 50.5" value={formData.area_hectares} onChange={(e) => setFormData({ ...formData, area_hectares: e.target.value })} className="h-12 pl-12 rounded-2xl border-border bg-card" />
                 </div>
               </div>
 
               <div className="col-span-2 space-y-2">
                 <div className="flex items-center justify-between px-1">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">Localização</Label>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleGetLocation}
-                    className="h-7 px-2 text-[10px] font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                  >
-                    <MapPin className="h-3 w-3 mr-1" />
-                    CAPTURAR GPS
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleGetLocation} className="h-7 px-2 text-[10px] font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"><MapPin className="h-3 w-3 mr-1" />CAPTURAR GPS</Button>
                 </div>
                 <div className="relative group">
                   <MapPin className="absolute left-4 top-4 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input 
-                    placeholder="Endereço ou coordenadas..."
-                    value={formData.location_link}
-                    onChange={(e) => setFormData({ ...formData, location_link: e.target.value })}
-                    className="h-12 pl-12 rounded-2xl border-border bg-card"
-                  />
+                  <Input placeholder="Endereço ou coordenadas..." value={formData.location_link} onChange={(e) => setFormData({ ...formData, location_link: e.target.value })} className="h-12 pl-12 rounded-2xl border-border bg-card" />
                 </div>
               </div>
 
               <div className="col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Descrição do Serviço</Label>
-                <Textarea 
-                  placeholder="Instruções para o piloto ou detalhes do serviço..."
-                  value={formData.service_description}
-                  onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
-                  className="min-h-[100px] rounded-3xl border-border bg-card resize-none p-4"
-                />
+                <Textarea placeholder="Instruções para o piloto ou detalhes do serviço..." value={formData.service_description} onChange={(e) => setFormData({ ...formData, service_description: e.target.value })} className="min-h-[100px] rounded-3xl border-border bg-card resize-none p-4" />
               </div>
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                className="flex-1 h-12 rounded-2xl font-bold border-border hover:bg-muted"
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleCreateService}
-                className="flex-[2] h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <Save className="h-5 w-5 mr-2" />
-                    Criar OS Drone
-                  </>
-                )}
-              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-12 rounded-2xl font-bold border-border hover:bg-muted" disabled={loading}>Cancelar</Button>
+              <Button onClick={handleCreateService} className="flex-[2] h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" disabled={loading}>{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5 mr-2" />Criar OS Drone</>}</Button>
             </div>
           </div>
         )}

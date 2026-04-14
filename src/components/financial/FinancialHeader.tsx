@@ -198,7 +198,7 @@ export function FinancialHeader({ type, filters, onFilterChange, summary, select
       </div>
 
       {/* Summary Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-0 border rounded-xl overflow-hidden bg-card divide-x divide-y md:divide-y-0 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-0 border rounded-xl overflow-hidden bg-card divide-y sm:divide-y-0 sm:divide-x shadow-sm transition-all duration-300">
         <div className="p-4 text-center">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Vencidos (R$)</p>
             <p className="text-lg font-bold text-rose-600">{formatCurrency(summary.vencidos)}</p>
