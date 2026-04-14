@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, addDays, differenceInDays, isPast } from 'date-fns';
+import { format, addDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { X, Send, Paperclip, FileDown, AlertTriangle, MessageSquare, Loader2 } from 'lucide-react';
+import { X, Send, Paperclip, FileDown, AlertTriangle, MessageSquare, Loader2, User, Calendar, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,20 +13,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { UserRole } from '@/types';
-import { ServiceOrder, ServiceOrderAttachmentSummary, ServiceOrderChecklistItem, serviceOrderService } from '@/services/serviceOrderService';
-import { ServiceOrderLog, serviceOrderLogService } from '@/services/serviceOrderLogService';
-import { clientService, Client } from '@/services/clientService';
-import { serviceTypeService, ServiceType } from '@/services/serviceTypeService';
+import { ServiceOrder, serviceOrderService } from '@/services/serviceOrderService';
+import { serviceOrderLogService } from '@/services/serviceOrderLogService';
+import { clientService } from '@/services/clientService';
+import { serviceTypeService } from '@/services/serviceTypeService';
+import { getUsers } from '@/services/userService';
 
 interface ServiceOrderModalProps {
-  order: ServiceOrder | null;
+  serviceOrder: ServiceOrder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
+  preselectedClientId?: string;
+  preselectedTechnicianId?: string;
+  prefilledNotes?: string;
 }
 
-export function ServiceOrderModal({ order, open, onOpenChange, onSave }: ServiceOrderModalProps) {
+export function ServiceOrderModal({ 
+  serviceOrder, 
+  open, 
+  onOpenChange, 
+  onSave,
+  preselectedClientId,
+  preselectedTechnicianId,
+  prefilledNotes
+}: ServiceOrderModalProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('details');
@@ -46,42 +57,54 @@ export function ServiceOrderModal({ order, open, onOpenChange, onSave }: Service
     enabled: open 
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+    enabled: open
+  });
+
+  const technicians = useMemo(() => 
+    allUsers.filter(u => ['MASTER', 'TECNICO', 'ENGENHEIRO', 'DEV'].includes(u.role)), 
+    [allUsers]
+  );
+
   const [formData, setFormData] = useState<Partial<ServiceOrder>>({
     client_id: '',
     service_type_id: '',
+    opening_date: '',
+    deadline_date: '',
     execution_date: '',
-    status: 'ABERTO',
+    status: 'EM_ABERTO',
     notes: '',
     assigned_to: '',
     checklist_state: []
   });
 
   useEffect(() => {
-    if (order) {
+    if (serviceOrder) {
       setFormData({
-        ...order,
-        execution_date: order.execution_date ? format(new Date(order.execution_date), 'yyyy-MM-dd') : ''
+        ...serviceOrder,
+        opening_date: serviceOrder.opening_date ? format(new Date(serviceOrder.opening_date + 'T00:00:00'), 'yyyy-MM-dd') : '',
+        deadline_date: serviceOrder.deadline_date ? format(new Date(serviceOrder.deadline_date + 'T00:00:00'), 'yyyy-MM-dd') : '',
+        execution_date: serviceOrder.execution_date ? format(new Date(serviceOrder.execution_date + 'T00:00:00'), 'yyyy-MM-dd') : ''
       });
       setActiveTab('details');
     } else {
+      const today = format(new Date(), 'yyyy-MM-dd');
       setFormData({
-        client_id: '',
+        client_id: preselectedClientId || '',
         service_type_id: '',
-        execution_date: format(new Date(), 'yyyy-MM-dd'),
-        status: 'ABERTO',
-        notes: '',
-        assigned_to: '',
+        opening_date: today,
+        deadline_date: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
+        execution_date: '',
+        status: 'EM_ABERTO',
+        notes: prefilledNotes || '',
+        assigned_to: preselectedTechnicianId || '',
         checklist_state: []
       });
       setActiveTab('details');
     }
-  }, [order, open]);
-
-  const { data: logs = [], refetch: refetchLogs } = useQuery({
-    queryKey: ['service-order-logs', order?.id],
-    queryFn: () => serviceOrderLogService.getByServiceOrderId(order!.id),
-    enabled: open && !!order?.id
-  });
+  }, [serviceOrder, open, preselectedClientId, preselectedTechnicianId, prefilledNotes]);
 
   const handleSave = async () => {
     if (!formData.client_id || !formData.service_type_id) {
@@ -95,14 +118,21 @@ export function ServiceOrderModal({ order, open, onOpenChange, onSave }: Service
 
     try {
       setLoading(true);
-      if (order) {
+      const selectedType = serviceTypes.find(t => t.id === formData.service_type_id);
+      
+      const payload = {
+        ...formData,
+        service_type: selectedType?.name || '',
+      };
+
+      if (serviceOrder) {
         await serviceOrderService.update({
-          ...formData,
-          id: order.id
-        });
+          ...payload,
+          id: serviceOrder.id
+        } as any);
         toast({ title: "Sucesso", description: "Ordem de serviço atualizada." });
       } else {
-        await serviceOrderService.create(formData as any);
+        await serviceOrderService.create(payload as any);
         toast({ title: "Sucesso", description: "Ordem de serviço criada." });
       }
       onSave();
@@ -120,16 +150,15 @@ export function ServiceOrderModal({ order, open, onOpenChange, onSave }: Service
   };
 
   const handleAddLog = async () => {
-    if (!order || !newLog.trim()) return;
+    if (!serviceOrder || !newLog.trim()) return;
 
     try {
       await serviceOrderLogService.create({
-        service_order_id: order.id,
+        service_order_id: serviceOrder.id,
         message: newLog,
         created_by: user?.id
       });
       setNewLog('');
-      refetchLogs();
     } catch (error) {
       toast({
         title: "Erro",
@@ -139,127 +168,234 @@ export function ServiceOrderModal({ order, open, onOpenChange, onSave }: Service
     }
   };
 
+  const { data: logs = [] } = useQuery({
+    queryKey: ['service-order-logs', serviceOrder?.id],
+    queryFn: () => serviceOrderLogService.getByServiceOrderId(serviceOrder!.id),
+    enabled: open && !!serviceOrder?.id
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{order ? 'Editar OS' : 'Nova Ordem de Serviço'}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col p-0 overflow-hidden bg-background rounded-3xl">
+        <DialogHeader className="p-6 border-b bg-muted/30">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <Calendar className="h-6 w-6" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">
+                {serviceOrder ? `OS ${serviceOrder.display_code || 'Editar'}` : 'Nova Ordem de Serviço'}
+              </DialogTitle>
+              {serviceOrder && (
+                <p className="text-xs text-muted-foreground font-medium mt-1">
+                  Criada em {format(new Date(serviceOrder.created_at), "d 'de' MMMM", { locale: ptBR })}
+                </p>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Detalhes</TabsTrigger>
-            <TabsTrigger value="logs" disabled={!order}>Histórico</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <div className="px-6 py-2 bg-muted/10 border-b">
+            <TabsList className="bg-transparent gap-4 p-0 h-auto">
+              <TabsTrigger 
+                value="details" 
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-2 py-2 font-bold text-xs uppercase tracking-wider"
+              >
+                Informações Gerais
+              </TabsTrigger>
+              <TabsTrigger 
+                value="logs" 
+                disabled={!serviceOrder}
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-2 py-2 font-bold text-xs uppercase tracking-wider"
+              >
+                Histórico e Notas
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="details" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Cliente</Label>
-                <Select 
-                  value={formData.client_id || ''} 
-                  onValueChange={(val) => setFormData({ ...formData, client_id: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="flex-1 overflow-y-auto p-6">
+            <TabsContent value="details" className="mt-0 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <User className="h-3 w-3" /> Cliente Responsável
+                    </Label>
+                    <Select 
+                      value={formData.client_id || ''} 
+                      onValueChange={(val) => setFormData({ ...formData, client_id: val })}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={client.id} className="rounded-xl">{client.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      Tipo de Serviço
+                    </Label>
+                    <Select 
+                      value={formData.service_type_id || ''} 
+                      onValueChange={(val) => {
+                        const selected = serviceTypes.find(t => t.id === val);
+                        const updates: Partial<ServiceOrder> = { service_type_id: val };
+                        if (selected?.deadline_days && !serviceOrder) {
+                          updates.deadline_date = format(addDays(new Date(), selected.deadline_days), 'yyyy-MM-dd');
+                        }
+                        setFormData({ ...formData, ...updates });
+                      }}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        {serviceTypes.map(type => (
+                          <SelectItem key={type.id} value={type.id} className="rounded-xl">{type.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      Técnico Designado
+                    </Label>
+                    <Select 
+                      value={formData.assigned_to || ''} 
+                      onValueChange={(val) => setFormData({ ...formData, assigned_to: val })}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
+                        <SelectValue placeholder="Selecionar técnico" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        {technicians.map(tech => (
+                          <SelectItem key={tech.id} value={tech.id} className="rounded-xl">{tech.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Data Abertura</Label>
+                      <Input 
+                        type="date" 
+                        value={formData.opening_date || ''} 
+                        onChange={(e) => setFormData({ ...formData, opening_date: e.target.value })}
+                        className="h-12 rounded-2xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Prazo Final</Label>
+                      <Input 
+                        type="date" 
+                        value={formData.deadline_date || ''} 
+                        onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })}
+                        className="h-12 rounded-2xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" /> Status do Processo
+                    </Label>
+                    <Select 
+                      value={formData.status || 'EM_ABERTO'} 
+                      onValueChange={(val) => setFormData({ ...formData, status: val })}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-border bg-card">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl">
+                        <SelectItem value="EM_ABERTO" className="rounded-xl">Em Aberto</SelectItem>
+                        <SelectItem value="EM_TRATAMENTO" className="rounded-xl">Em Tratamento</SelectItem>
+                        <SelectItem value="EM_EXECUCAO" className="rounded-xl">Em Execução</SelectItem>
+                        <SelectItem value="CONCLUIDO" className="rounded-xl">Concluído</SelectItem>
+                        <SelectItem value="CANCELADO" className="rounded-xl text-destructive">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Data de Execução</Label>
+                    <Input 
+                      type="date" 
+                      value={formData.execution_date || ''} 
+                      onChange={(e) => setFormData({ ...formData, execution_date: e.target.value })}
+                      className="h-12 rounded-2xl"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Tipo de Serviço</Label>
-                <Select 
-                  value={formData.service_type_id || ''} 
-                  onValueChange={(val) => setFormData({ ...formData, service_type_id: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {serviceTypes.map(type => (
-                      <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data de Execução</Label>
-                <Input 
-                  type="date" 
-                  value={formData.execution_date || ''} 
-                  onChange={(e) => setFormData({ ...formData, execution_date: e.target.value })}
+              <div className="space-y-2 pt-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Descrição / Notas do Serviço</Label>
+                <Textarea 
+                  value={formData.notes || ''} 
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Descreva detalhes importantes sobre o serviço ou especificações do cliente..."
+                  className="min-h-[120px] rounded-3xl p-4 border-border resize-none"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select 
-                  value={formData.status || 'ABERTO'} 
-                  onValueChange={(val) => setFormData({ ...formData, status: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ABERTO">Aberto</SelectItem>
-                    <SelectItem value="EM_ANDAMENTO">Em Andamento</SelectItem>
-                    <SelectItem value="CONCLUIDO">Concluído</SelectItem>
-                    <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-3 pt-4 border-t border-border mt-8">
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 h-12 rounded-2xl font-bold border-border" disabled={loading}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSave} disabled={loading} className="flex-[2] h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Salvar Alterações'}
+                </Button>
               </div>
-            </div>
+            </TabsContent>
 
-            <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea 
-                value={formData.notes || ''} 
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Observações adicionais..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="logs" className="space-y-4 pt-4">
-            <div className="flex gap-2">
-              <Input 
-                value={newLog} 
-                onChange={(e) => setNewLog(e.target.value)}
-                placeholder="Adicionar um comentário..."
-                onKeyDown={(e) => e.key === 'Enter' && handleAddLog()}
-              />
-              <Button onClick={handleAddLog}>Enviar</Button>
-            </div>
-
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {logs.map((log) => (
-                  <div key={log.id} className="bg-muted p-3 rounded-lg space-y-1">
-                    <p className="text-sm">{log.message}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
-                    </p>
-                  </div>
-                ))}
+            <TabsContent value="logs" className="mt-0 h-full flex flex-col gap-4">
+              <div className="flex gap-2 p-2 bg-muted/20 rounded-2xl border border-border focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <Input 
+                  value={newLog} 
+                  onChange={(e) => setNewLog(e.target.value)}
+                  placeholder="Adicionar um comentário ou nota..."
+                  className="border-none focus-visible:ring-0 bg-transparent flex-1 h-10"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddLog()}
+                />
+                <Button onClick={handleAddLog} className="rounded-xl h-10 px-4 bg-primary shadow-sm active:scale-95 transition-all">
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
-            </ScrollArea>
-          </TabsContent>
+
+              <ScrollArea className="flex-1 h-[400px]">
+                <div className="space-y-4 py-4">
+                  {logs.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12 gap-3 opacity-50">
+                      <MessageSquare className="h-12 w-12" />
+                      <p className="text-sm font-medium">Nenhum comentário registrado</p>
+                    </div>
+                  ) : (
+                    logs.map((log) => (
+                      <div key={log.id} className="bg-muted/50 p-4 rounded-3xl border border-border/50 space-y-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{log.created_by_name || 'Sistema'}</span>
+                          <span className="text-[10px] text-muted-foreground/50 font-medium">
+                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">{log.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
