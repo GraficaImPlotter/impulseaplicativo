@@ -9,7 +9,7 @@ import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService } from '@/services/droneLogService';
-import { companySettingsService, CompanySettings } from '@/services/companySettingsService';
+import { getCompanySettings, CompanySettings } from '@/services/companySettingsService';
 import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ export default function DroneServices() {
 
   const { data: companySettings } = useQuery({
     queryKey: ['company-settings'],
-    queryFn: companySettingsService.get
+    queryFn: getCompanySettings
   });
 
   const handleServiceClick = (service: DroneService) => {

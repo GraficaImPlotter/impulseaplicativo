@@ -21,7 +21,7 @@ import { serviceOrderService } from '@/services/serviceOrderService';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService, DroneServiceLog } from '@/services/droneLogService';
 import { clientService, Client } from '@/services/clientService';
-import { companySettingsService } from '@/services/companySettingsService';
+import { getCompanySettings } from '@/services/companySettingsService';
 import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
@@ -88,7 +88,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
 
   const { data: companySettings } = useQuery({
     queryKey: ['company-settings'],
-    queryFn: companySettingsService.get,
+    queryFn: getCompanySettings,
     enabled: open
   });
 
