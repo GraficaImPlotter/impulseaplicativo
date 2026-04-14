@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Plane, Activity, Search, Plus as PlusIcon, List, LayoutGrid, Calendar, 
@@ -6,7 +6,9 @@ import {
   CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2
 } from 'lucide-react';
 import { getUsers, UserWithRole } from '@/services/userService';
+import { toast } from 'sonner';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
+import { droneLogService } from '@/services/droneLogService';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
