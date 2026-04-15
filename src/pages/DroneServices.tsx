@@ -74,8 +74,8 @@ export default function DroneServices() {
   const technicianNames = pilots.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {} as Record<string, string>);
 
   const filteredServices = services.filter((s) => {
-    // Regra: Piloto vê apenas o que foi designado a ele
-    if (user?.role === 'PILOTO' && s.technician_id !== user.id) {
+    // Regra: Piloto vê apenas o que foi designado a ele OU o que ele criou
+    if (user?.role === 'PILOTO' && s.technician_id !== user.id && s.created_by !== user.id) {
       return false;
     }
 

@@ -26,6 +26,7 @@ export interface DroneService {
     name: string;
   };
   attachments?: any[];
+  created_by?: string;
 }
 
 export const droneService = {
