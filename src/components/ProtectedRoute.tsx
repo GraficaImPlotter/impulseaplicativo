@@ -10,10 +10,13 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles, requiredPermission }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isProfileLoaded, hasRole, can } = useAuth();
+  const { isAuthenticated, isLoading, isProfileLoaded, hasRole, can, user } = useAuth();
   const location = useLocation();
 
-  if (isLoading || (isAuthenticated && !isProfileLoaded)) {
+  // Consider authenticated if we have a session OR a cached user profile (offline)
+  const isEffectivelyAuthenticated = isAuthenticated || !!user;
+
+  if (isLoading || (isEffectivelyAuthenticated && !isProfileLoaded)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-pulse">
@@ -23,7 +26,7 @@ export function ProtectedRoute({ children, allowedRoles, requiredPermission }: P
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isEffectivelyAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

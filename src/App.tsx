@@ -123,7 +123,10 @@ const App = () => {
     return (
       <PersistQueryClientProvider 
         client={queryClient}
-        persistOptions={{ persister }}
+        persistOptions={{ 
+          persister,
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days - match gcTime
+        }}
       >
         <AppContent />
       </PersistQueryClientProvider>

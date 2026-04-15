@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 import { offlineDB } from '@/lib/offline-db';
+import { IS_NATIVE_APP } from '@/lib/platform';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -10,11 +11,11 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Fetch Wrapper offline
 const customOfflineFetch = async (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
   const method = options?.method || 'GET';
-  
-  // Only intercept mutations if we are likely offline
-  // We check navigator.onLine but also catch actual network errors
+  const urlString = url.toString();
+
+  // If we know we're offline and it's a mutation, enqueue immediately
   if (method !== 'GET' && !window.navigator.onLine) {
-    console.log('[Offline] Intercepting request (Offline detected):', method, url);
+    console.log('[Offline] Enfileirando mutação offline:', method, urlString);
     return enqueueAndMock(url, options);
   }
 
@@ -22,10 +23,23 @@ const customOfflineFetch = async (url: RequestInfo | URL, options?: RequestInit)
     const response = await fetch(url, options);
     return response;
   } catch (error) {
-    // If it's a network error and not a GET, enqueue it
-    if (method !== 'GET' && error instanceof TypeError && error.message === 'Failed to fetch') {
-      console.log('[Offline] Network error detected, enqueuing mutation:', method, url);
-      return enqueueAndMock(url, options);
+    // Network error caught - we're actually offline
+    if (error instanceof TypeError) {
+      // For mutations: save to queue for later sync
+      if (method !== 'GET') {
+        console.log('[Offline] Erro de rede, enfileirando mutação:', method, urlString);
+        return enqueueAndMock(url, options);
+      }
+
+      // For GETs on native app: return empty response so TanStack Query 
+      // can fall back to its persisted cache instead of crashing
+      if (IS_NATIVE_APP) {
+        console.log('[Offline] Erro de rede em GET, retornando resposta vazia para uso do cache:', urlString);
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
     throw error;
   }
@@ -36,12 +50,11 @@ const enqueueAndMock = async (url: RequestInfo | URL, options?: RequestInit): Pr
   const body = options?.body ? options.body.toString() : null;
   const urlString = url.toString();
   
-  // Save to IndexedDB
   await offlineDB.enqueueRequest({
     url: urlString,
     method,
     body,
-    headers: {}, 
+    headers: {},
   });
 
   return new Response(JSON.stringify([{ id: 'offline-pending', status: 'queued' }]), { 
