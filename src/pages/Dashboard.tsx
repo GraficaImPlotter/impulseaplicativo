@@ -124,7 +124,6 @@ export default function Dashboard() {
   console.log('[Dashboard] Status:', { 
     userId: user?.id, 
     role: user?.role, 
-    isProfileLoaded, 
     isLoadingSummary: loading,
     hasData: !!summary 
   });
