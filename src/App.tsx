@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { IS_NATIVE_APP } from "@/lib/platform";
 import { createIDBPersister } from "@/lib/offline-persister";
 import { syncService } from "@/services/syncService";
+import { sqliteService } from "@/services/sqliteService";
 
 // ── Lazy-loaded pages (code splitting) ──────────────────────────
 const Index = lazy(() => import("./pages/Index"));
@@ -53,25 +54,46 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Only persist if running as a native app (Capacitor/Android)
-// Web (PC/PWA) stays online-first to avoid stale data issues.
 const persister = IS_NATIVE_APP ? createIDBPersister() : undefined;
 
 // ── Page loading fallback ───────────────────────────────────────
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen bg-background">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+const PageLoader = ({ message }: { message?: string }) => (
+  <div className="flex flex-col items-center justify-center h-screen bg-background space-y-4">
+    <Loader2 className="h-10 w-10 animate-spin text-impulse-gold" />
+    {message && <p className="text-muted-foreground animate-pulse font-medium">{message}</p>}
   </div>
 );
 
 const AppContent = () => {
+  const [isDbReady, setIsDbReady] = React.useState(!IS_NATIVE_APP);
+  const [syncStatus, setSyncStatus] = React.useState<string>("");
+
   React.useEffect(() => {
-    // Prefetch critical data for both Web and Mobile to ensure lists are ready
-    syncService.prefetchCriticalData();
-    
-    // Initialize offline sync listener (only handles mutations if native)
-    syncService.initSyncListener();
+    const initApp = async () => {
+      if (IS_NATIVE_APP) {
+        setSyncStatus("Inicializando banco de dados nativo...");
+        const db = await sqliteService.init();
+        if (db) {
+          setIsDbReady(true);
+          setSyncStatus("Banco de dados pronto.");
+        }
+      }
+
+      // Initialize offline sync listener
+      syncService.initSyncListener();
+
+      // Start background sync
+      setSyncStatus("Sincronizando dados offline...");
+      await syncService.prefetchCriticalData();
+      setSyncStatus("");
+    };
+
+    initApp();
   }, []);
+
+  if (!isDbReady) {
+    return <PageLoader message={syncStatus} />;
+  }
 
   return (
     <AuthProvider>

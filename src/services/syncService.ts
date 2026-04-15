@@ -12,6 +12,7 @@ import { getUsers } from '@/services/userService';
 import { Network } from '@capacitor/network';
 import { offlineDB } from '@/lib/offline-db';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDashboardSummary } from '@/pages/Dashboard';
 
 /**
  * SyncService
@@ -149,6 +150,21 @@ export const syncService = {
         queryKey: ['users'],
         queryFn: () => getUsers(),
       });
+
+      // 10. Carregar Resumo do Dashboard (Baseado no usuário logado)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Precisamos extrair o role do perfil cacheado ou do banco
+        const { data: profile } = await supabase.from('profiles').select('id, email').eq('id', session.user.id).single();
+        const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id).single();
+        
+        if (profile && roleData) {
+          await queryClient.prefetchQuery({
+            queryKey: ['dashboard-summary', profile.id, roleData.role],
+            queryFn: () => fetchDashboardSummary(roleData.role, profile.id),
+          });
+        }
+      }
 
       console.log('[SyncService] Pré-carregamento concluído com sucesso.');
     } catch (error) {
