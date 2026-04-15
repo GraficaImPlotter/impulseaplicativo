@@ -16,6 +16,7 @@ interface DashboardSummary {
   projects: { total: number; inProgress: number; delayed: number; };
   quotes: { total: number; pending: number; approved: number; };
   serviceOrders: { total: number; pending: number; overdue: number; };
+  droneServices: { total: number; pending: number; };
   financial: { receivablesPending: number; payablesPending: number; receivablesOverdue: number; payablesOverdue: number; };
 }
 
@@ -78,17 +79,6 @@ async function fetchDashboardSummary(role: string, userId: string): Promise<Dash
   const pendingQuotes = quotes.filter(q => q.status === 'SENT' || q.status === 'DRAFT');
   const approvedQuotes = quotes.filter(q => q.status === 'APPROVED');
 
-  // Parse OS (Combine general OS and Drone OS if user sees both)
-  const generalOS = resOs.data || [];
-  const droneOS = resDrone.data || [];
-  const allOS = [...generalOS, ...droneOS];
-  
-  const pendingOS = allOS.filter(os => {
-    const s = os.status as string;
-    return s !== 'CONCLUIDO' && s !== 'CANCELADO' && s !== 'FINALIZADO';
-  });
-  const overdueOS = generalOS.filter(os => os.deadline_date && os.deadline_date < today);
-
   // Parse Financial
   const transactions = resFin.data || [];
   const receivables = transactions.filter(t => t.type === 'INCOME' && t.status === 'PENDING');
@@ -96,10 +86,23 @@ async function fetchDashboardSummary(role: string, userId: string): Promise<Dash
   const receivablesOverdue = receivables.filter(t => t.due_date && t.due_date < today);
   const payablesOverdue = payables.filter(t => t.due_date && t.due_date < today);
 
+  // Parse OS
+  const generalOS = resOs.data || [];
+  const droneOS = resDrone.data || [];
+  
+  const pendingOS = generalOS.filter(os => {
+    const s = os.status as string;
+    return s !== 'CONCLUIDO' && s !== 'CANCELADO';
+  });
+  const overdueOS = generalOS.filter(os => os.deadline_date && os.deadline_date < today);
+
+  const pendingDrone = droneOS.filter(os => os.status !== 'FINALIZADO');
+
   return {
     projects: { total: projects.length, inProgress: projInProgress.length, delayed: projDelayed.length },
     quotes: { total: quotes.length, pending: pendingQuotes.length, approved: approvedQuotes.length },
-    serviceOrders: { total: allOS.length, pending: pendingOS.length, overdue: overdueOS.length },
+    serviceOrders: { total: generalOS.length, pending: pendingOS.length, overdue: overdueOS.length },
+    droneServices: { total: droneOS.length, pending: pendingDrone.length },
     financial: { 
       receivablesPending: receivables.length, payablesPending: payables.length,
       receivablesOverdue: receivablesOverdue.length, payablesOverdue: payablesOverdue.length
@@ -283,9 +286,9 @@ export default function Dashboard() {
           </Link>
         )}
 
-        {/* Module: Ordens de Servico (Engenharia / Drone) */}
-        {(isMasterOrDev || isEngenharia || isDrone) && (
-          <Link to={isDrone && !isMasterOrDev ? "/drone" : "/service-orders"} className="group">
+        {/* Module: Ordens de Servico Solar (Engenharia) */}
+        {(isMasterOrDev || isEngenharia) && (
+          <Link to="/service-orders" className="group">
             <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all hover-lift">
               <div className="flex items-center justify-between mb-4">
                 <div className={cn("p-2.5 rounded-xl", (summary?.serviceOrders.overdue || 0) > 0 ? "bg-destructive/10" : "bg-primary/10")}>
@@ -294,7 +297,7 @@ export default function Dashboard() {
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-3">
-                {isDrone && !isMasterOrDev ? 'OS de Drone' : (user?.role === 'TECNICO' ? 'Minhas O.S.' : 'Ordens de Serviço')}
+                {user?.role === 'TECNICO' ? 'Minhas O.S. (Solar)' : 'Ordens de Serviço'}
               </h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -303,7 +306,7 @@ export default function Dashboard() {
                   </span>
                   <span className="font-medium text-foreground">{summary?.serviceOrders.pending || 0}</span>
                 </div>
-                {(summary?.serviceOrders.overdue || 0) > 0 && !isDrone && (
+                {(summary?.serviceOrders.overdue || 0) > 0 && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-3.5 w-3.5" /> Vencidas
@@ -311,6 +314,37 @@ export default function Dashboard() {
                     <span className="font-medium text-destructive">{summary?.serviceOrders.overdue}</span>
                   </div>
                 )}
+              </div>
+            </div>
+          </Link>
+        )}
+
+        {/* Module: Ordens de Servico Drone */}
+        {(isMasterOrDev || isDrone) && (
+          <Link to="/drone" className="group">
+            <div className="bg-card rounded-xl border border-border p-5 hover:shadow-lg hover:border-impulse-gold/30 transition-all hover-lift">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-impulse-gold/10">
+                  <Plane className="h-5 w-5 text-impulse-gold" />
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-impulse-gold transition-colors" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-3">
+                OS de Drone
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" /> Pendentes
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.droneServices.pending || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <Activity className="h-3.5 w-3.5" /> Total
+                  </span>
+                  <span className="font-medium text-foreground">{summary?.droneServices.total || 0}</span>
+                </div>
               </div>
             </div>
           </Link>
