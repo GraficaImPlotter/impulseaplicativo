@@ -310,8 +310,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "bg-background border-border overflow-hidden p-0 rounded-3xl",
-        service ? "max-w-4xl h-[95vh] md:h-[85vh]" : "max-w-2xl h-auto max-h-[95vh] md:max-h-[90vh]"
+        "bg-background border-border overflow-hidden p-0 rounded-3xl flex flex-col",
+        service ? "max-w-4xl h-[95vh] md:h-[85vh]" : "max-w-2xl h-[90vh] md:h-[85vh]"
       )}>
         {service ? (
           <Tabs defaultValue="info" className="w-full h-full flex flex-col">
