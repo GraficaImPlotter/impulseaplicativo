@@ -34,15 +34,14 @@ export default function Projects() {
   const { hasRole } = useAuth();
   const canDeleteProject = hasRole(['MASTER', 'DEV']);
   const canOpenProjectModal = !hasRole(['TECNICO']);
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState<ProjectStatus | null>(null);
+  const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [clientNames, setClientNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [showArchived, setShowArchived] = useState(false);
   const [preselectedClientId, setPreselectedClientId] = useState<string | undefined>();
   const { stages, template } = useProjectStages();
 
@@ -98,9 +97,7 @@ export default function Projects() {
   const filteredProjects = projects.filter((project) => {
     const clientName = project.client_id ? clientNames[project.client_id] || '' : '';
     const matchesSearch = clientName.toLowerCase().includes(search.toLowerCase());
-    const matchesStage = !stageFilter || project.status === stageFilter;
-    
-    // Calculate progress to determine if it's archived (100%)
+    // Calculate progress for the project
     const progress = calculateProjectProgress(
       project.checklist,
       project.installation_type,
@@ -109,10 +106,20 @@ export default function Projects() {
     );
     const isArchived = progress === 100;
 
-    // By default, hide archived projects unless explicitly filtering by a stage or showArchived is on
-    if (!showArchived && isArchived && !stageFilter) return false;
+    // Filter Logic:
+    // 1. If 'CONCLUIDO' filter is active, show only 100% progress projects
+    // 2. If a specific stage filter is active, show only projects in that stage
+    // 3. If no filter is active (TODOS), show only projects < 100% progress
+    if (stageFilter === 'CONCLUIDO') {
+      if (!isArchived) return false;
+    } else if (stageFilter) {
+      if (project.status !== stageFilter) return false;
+    } else {
+      // TODOS view: hide completed projects
+      if (isArchived) return false;
+    }
 
-    return matchesSearch && matchesStage;
+    return matchesSearch;
   });
 
   const { paginatedItems, ...paginationProps } = usePagination({
@@ -120,7 +127,7 @@ export default function Projects() {
     itemsPerPage: 6,
   });
 
-  const handleStageClick = (stageKey: ProjectStatus) => {
+  const handleStageClick = (stageKey: string) => {
     if (stageFilter === stageKey) {
       setStageFilter(null);
     } else {
@@ -197,15 +204,18 @@ export default function Projects() {
             </Button>
           </div>
 
-          <Button
-            variant={showArchived ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setShowArchived(!showArchived)}
-            className="h-10 rounded-xl gap-2 flex-1 sm:flex-none"
-          >
-            <FolderKanban className="h-4 w-4" />
-            <span className="truncate">{showArchived ? "Ocultar Concluídos" : "Ver Concluídos"}</span>
-          </Button>
+          {!hasRole(['TECNICO']) && (
+            <Button
+              onClick={() => {
+                setSelectedProject(null);
+                setModalOpen(true);
+              }}
+              className="h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 shadow-lg shadow-primary/20 flex-1 sm:flex-none"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Projeto
+            </Button>
+          )}
         </div>
       </div>
 
@@ -239,6 +249,36 @@ export default function Projects() {
                   </button>
                 );
               })}
+
+              {/* Add Concluídos button to the end of pipeline */}
+              {(() => {
+                const completedCount = projects.filter(p => {
+                  const progress = calculateProjectProgress(p.checklist, p.installation_type, stages, template);
+                  return progress === 100;
+                }).length;
+                const isActive = stageFilter === 'CONCLUIDO';
+                
+                return (
+                  <button
+                    onClick={() => handleStageClick('CONCLUIDO')}
+                    className={cn(
+                      'flex-shrink-0 px-4 py-3 rounded-xl border min-w-[140px] text-left transition-all',
+                      isActive
+                        ? 'bg-emerald-500/10 border-emerald-500'
+                        : 'bg-card border-border hover:border-emerald-500/50'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Status
+                      </span>
+                    </div>
+                    <p className="font-semibold text-foreground uppercase tracking-tight">Concluídos</p>
+                    <p className="text-sm text-muted-foreground">{completedCount} projetos</p>
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
@@ -252,7 +292,7 @@ export default function Projects() {
                 onClick={() => setStageFilter(null)}
                 className="h-7 text-xs"
               >
-                {stages.find((s) => s.key === stageFilter)?.label}
+                {stageFilter === 'CONCLUIDO' ? 'Concluídos' : (stages.find((s) => s.key === stageFilter)?.label)}
                 <X className="h-3 w-3 ml-1" />
               </Button>
             </div>

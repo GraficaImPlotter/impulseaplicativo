@@ -148,12 +148,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         };
 
         setFormData({
-          client_id: service.client_id || '',
-          client_name: service.client_name || '',
-          client_phone: service.client_phone || '',
-          client_document: service.client_document || '',
-          client_address_street: service.client_address_street || '',
-          technician_id: service.technician_id || '',
           location_link: service.location_link || '',
           area_hectares: service.area_hectares?.toString() || '',
           service_description: service.service_description || '',
@@ -180,6 +174,20 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     }
   }, [service, open]);
 
+  const handleClientSelect = (clientId: string) => {
+    const selectedClient = clients.find(c => c.id === clientId);
+    if (selectedClient) {
+      setFormData(prev => ({
+        ...prev,
+        client_id: selectedClient.id,
+        client_name: selectedClient.name,
+        client_phone: selectedClient.phone || '',
+        client_document: selectedClient.document || '',
+        client_address_street: selectedClient.address_street || ''
+      }));
+    }
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -195,7 +203,12 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         location_link: formData.location_link,
         service_description: formData.service_description,
         opening_date: formData.opening_date,
-        execution_date: formData.execution_date || undefined
+        execution_date: formData.execution_date || undefined,
+        client_id: formData.client_id || undefined,
+        client_name: formData.client_name,
+        client_phone: formData.client_phone,
+        client_document: formData.client_document,
+        client_address_street: formData.client_address_street
       });
       toast.success('Informações atualizadas');
       setIsEditing(false);
@@ -269,6 +282,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     try {
       setLoading(true);
       const newService = await droneService.create({
+        client_id: formData.client_id || undefined,
         client_name: formData.client_name,
         client_phone: formData.client_phone || undefined,
         client_document: formData.client_document || undefined,
@@ -278,7 +292,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         area_hectares: parseFloat(formData.area_hectares) || undefined,
         service_description: formData.service_description || 'Serviço de Drone',
         status: 'PENDENTE',
-        opening_date: formData.opening_date
+        opening_date: formData.opening_date,
+        created_by: user?.id
       });
 
       await droneLogService.create(newService.id, 'OS Drone criada no sistema', user?.name || 'Sistema');
@@ -659,12 +674,42 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 </div>
 
                 <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                  <Input placeholder="Nome completo do cliente (Obrigatório)..." value={formData.client_name} onChange={(e) => setFormData({ ...formData, client_name: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input placeholder="Telefone (Opcional)" value={formData.client_phone} onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
-                    <Input placeholder="CPF ou CNPJ (Opcional)" value={formData.client_document} onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Vincular Cliente (Opcional)</Label>
+                    <Select value={formData.client_id} onValueChange={handleClientSelect}>
+                      <SelectTrigger className="h-12 rounded-2xl bg-background border-border">
+                        <SelectValue placeholder="Selecione um cliente cadastrado..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl max-h-60">
+                        {clients.map(c => (
+                          <SelectItem key={c.id} value={c.id} className="rounded-xl">{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Input placeholder="Endereço completo (Opcional)" value={formData.client_address_street} onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Nome do Cliente (Obrigatório)</Label>
+                      <Input placeholder="Nome completo do cliente..." value={formData.client_name} onChange={(e) => setFormData({ ...formData, client_name: e.target.value, client_id: '' })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Telefone</Label>
+                      <Input placeholder="(00) 00000-0000" value={formData.client_phone} onChange={(e) => setFormData({ ...formData, client_phone: maskPhone(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">CPF/CNPJ</Label>
+                      <Input placeholder="000.000.000-00" value={formData.client_document} onChange={(e) => setFormData({ ...formData, client_document: maskDocument(e.target.value) })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Endereço</Label>
+                    <Input placeholder="Rua, Número, Bairro..." value={formData.client_address_street} onChange={(e) => setFormData({ ...formData, client_address_street: e.target.value })} className="h-12 rounded-2xl bg-background border-border focus:ring-primary/20" />
+                  </div>
                 </div>
               </div>
               
