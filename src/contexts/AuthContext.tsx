@@ -64,19 +64,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ['financial.view', 'projects.view', 'clients.view', 'sales.view', 'quotes.view'].forEach(p => effectivePermissions.add(p));
         }
 
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          role: userRole,
-          avatar_url: profile.avatar_url || undefined,
           created_at: profile.created_at,
           permissions: Array.from(effectivePermissions),
-        });
+        };
+
+        setUser(fullProfile);
+        
+        // Cache profile for offline access
+        localStorage.setItem('cached_user_profile', JSON.stringify(fullProfile));
       }
       setIsProfileLoaded(true);
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      
+      // Try to hydrate from cache if offline
+      const cached = localStorage.getItem('cached_user_profile');
+      if (cached) {
+        try {
+          setUser(JSON.parse(cached));
+          console.log('[Auth] Profile hydrated from offline cache');
+        } catch (e) {
+          console.error('[Auth] Failed to parse cached profile', e);
+        }
+      }
+      
       setIsProfileLoaded(true);
     }
   };
@@ -166,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     sessionStorage.removeItem('impersonated_user');
     sessionStorage.removeItem('real_user');
+    localStorage.removeItem('cached_user_profile');
   };
 
   const impersonate = async (targetUser: UserProfile) => {

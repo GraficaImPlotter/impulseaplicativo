@@ -43,8 +43,8 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: IS_NATIVE_APP ? 5 * 60 * 1000 : 0, // No stale time on Web (always fresh)
-      gcTime: IS_NATIVE_APP ? 7 * 24 * 60 * 60 * 1000 : 0, // 7 days on Android, 0 on Web
+      staleTime: IS_NATIVE_APP ? 30 * 60 * 1000 : 0, // 30 mins stable on Mobile
+      gcTime: IS_NATIVE_APP ? 30 * 24 * 60 * 60 * 1000 : 0, // 30 days of persistence
       retry: 1,
       refetchOnWindowFocus: IS_NATIVE_APP ? false : true,
     },
