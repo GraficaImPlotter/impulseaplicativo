@@ -10,28 +10,41 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Fetch Wrapper offline
 const customOfflineFetch = async (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
   const method = options?.method || 'GET';
-  const isOnline = window.navigator.onLine;
-
-  if (isOnline || method === 'GET') {
-    return fetch(url, options);
+  
+  // Only intercept mutations if we are likely offline
+  // We check navigator.onLine but also catch actual network errors
+  if (method !== 'GET' && !window.navigator.onLine) {
+    console.log('[Offline] Intercepting request (Offline detected):', method, url);
+    return enqueueAndMock(url, options);
   }
 
-  // OFFLINE & MUTATION
-  console.log('[Offline] Intercepting request:', method, url);
-  
+  try {
+    const response = await fetch(url, options);
+    return response;
+  } catch (error) {
+    // If it's a network error and not a GET, enqueue it
+    if (method !== 'GET' && error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.log('[Offline] Network error detected, enqueuing mutation:', method, url);
+      return enqueueAndMock(url, options);
+    }
+    throw error;
+  }
+};
+
+const enqueueAndMock = async (url: RequestInfo | URL, options?: RequestInit): Promise<Response> => {
+  const method = options?.method || 'POST';
   const body = options?.body ? options.body.toString() : null;
   const urlString = url.toString();
   
-  // Save to IndexedDB (without sensitive auth headers to prevent expire, sync will handle it)
+  // Save to IndexedDB
   await offlineDB.enqueueRequest({
     url: urlString,
     method,
     body,
-    headers: {}, // Do not store old headers, Sync hook will rebuild them!
+    headers: {}, 
   });
 
-  // Mock Success Response to keep App flow
-  return new Response(JSON.stringify([{ id: 'offline-fake-id', status: 'saved_offline' }]), { 
+  return new Response(JSON.stringify([{ id: 'offline-pending', status: 'queued' }]), { 
     status: 200, 
     headers: { 'Content-Type': 'application/json' } 
   });

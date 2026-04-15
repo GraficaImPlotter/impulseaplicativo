@@ -1,4 +1,4 @@
-import { queryClient } from '@/App'; // Precisa exportar o queryClient do App.tsx
+import { queryClient } from '@/App';
 import { IS_NATIVE_APP } from '@/lib/platform';
 import { serviceOrderService } from '@/services/serviceOrderService';
 import { droneService } from '@/services/droneService';
@@ -9,6 +9,9 @@ import { serviceTypeService } from '@/services/serviceTypeService';
 import { accountService } from '@/services/accountService';
 import { costCenterService } from '@/services/costCenterService';
 import { getUsers } from '@/services/userService';
+import { Network } from '@capacitor/network';
+import { offlineDB } from '@/lib/offline-db';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * SyncService
@@ -16,6 +19,76 @@ import { getUsers } from '@/services/userService';
  * para garantir que estejam disponíveis offline.
  */
 export const syncService = {
+  isSyncing: false,
+
+  async initSyncListener() {
+    if (!IS_NATIVE_APP) return;
+
+    console.log('[SyncService] Inicializando Network Listener...');
+    
+    // Process queue on startup
+    this.processOfflineQueue();
+
+    // Re-process on reconnection
+    Network.addListener('networkStatusChange', (status) => {
+      console.log('[SyncService] Status de rede alterado:', status);
+      if (status.connected) {
+        this.processOfflineQueue();
+      }
+    });
+  },
+
+  async processOfflineQueue() {
+    if (this.isSyncing) return;
+    
+    const queue = await offlineDB.getQueue();
+    if (queue.length === 0) return;
+
+    console.log(`[SyncService] Processando fila offline: ${queue.length} item(s)`);
+    this.isSyncing = true;
+
+    for (const item of queue) {
+      try {
+        console.log(`[SyncService] Sincronizando item ${item.id} (${item.method} ${item.url})`);
+        
+        // Use Supabase fetch to re-run the request
+        // Since customOfflineFetch is global, we need a way to bypass it or ensure it sees us as online
+        const { data: session } = await supabase.auth.getSession();
+        const token = session.session?.access_token;
+
+        const response = await fetch(item.url, {
+          method: item.method,
+          headers: {
+            ...item.headers,
+            'Authorization': token ? `Bearer ${token}` : '',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: item.body
+        });
+
+        if (response.ok) {
+          console.log(`[SyncService] Item ${item.id} sincronizado com sucesso.`);
+          await offlineDB.removeFromQueue(item.id);
+        } else {
+          const errorText = await response.text();
+          console.error(`[SyncService] Erro ao sincronizar item ${item.id}:`, errorText);
+          await offlineDB.incrementRetry(item.id);
+        }
+      } catch (error) {
+        console.error(`[SyncService] Falha na rede ao processar item ${item.id}:`, error);
+        break; // Stop processing if we lost connection again
+      }
+    }
+
+    // After syncing, invalidate queries to refresh UI
+    await queryClient.invalidateQueries();
+    
+    this.isSyncing = false;
+    console.log('[SyncService] Processamento de fila concluído.');
+  },
+
   async prefetchCriticalData() {
     // Prefetch critical data to ensure lists are ready across all platforms
     // (Android uses local cache, Web uses memory cache)

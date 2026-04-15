@@ -66,6 +66,9 @@ const AppContent = () => {
   React.useEffect(() => {
     // Prefetch critical data for both Web and Mobile to ensure lists are ready
     syncService.prefetchCriticalData();
+    
+    // Initialize offline sync listener (only handles mutations if native)
+    syncService.initSyncListener();
   }, []);
 
   return (
