@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  CheckCircle2, AlertCircle, XCircle, MapPin, User, Settings2, Trash2,
+  CheckCircle2, AlertCircle, MapPin, User, Settings2, Trash2,
   Loader2, Plane, List, LayoutGrid, Plus as PlusIcon, Search, Filter,
   Clock, Activity, MoreHorizontal, FileDown
 } from 'lucide-react';

@@ -12,15 +12,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Loader2, Save, Trash2, User, MapPin, Plus as PlusIcon,
-  Settings2, Activity, MessageCircle, Clock, Send, Paperclip, FileDown, Upload, X
+  Settings2, Activity, MessageCircle, Send, Paperclip, FileDown, Upload, X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { storageService } from '@/services/storageService';
 import { serviceOrderService } from '@/services/serviceOrderService';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
-import { droneLogService, DroneServiceLog } from '@/services/droneLogService';
-import { clientService, Client } from '@/services/clientService';
+import { droneLogService } from '@/services/droneLogService';
+import { clientService } from '@/services/clientService';
 import { getCompanySettings } from '@/services/companySettingsService';
 import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { getUsers, UserWithRole } from '@/services/userService';
@@ -34,7 +34,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';

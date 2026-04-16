@@ -19,9 +19,11 @@ END $$;
 -- 2. Corrigir políticas RLS para permitir que consultores de drone, financeiro e dev vejam perfis e cargos
 -- Isso é necessário para que o dropdown de pilotos funcione corretamente para esses cargos.
 
--- Remover políticas restritivas antigas se existirem (nomes baseados na migração 20251213142845)
+-- Remover políticas restritivas antigas se existirem
 DROP POLICY IF EXISTS "Masters can view all profiles" ON public.profiles;
 DROP POLICY IF EXISTS "Masters can view all roles" ON public.user_roles;
+DROP POLICY IF EXISTS "Allowed roles can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allowed roles can view all roles" ON public.user_roles;
 
 -- Criar novas políticas abrangentes para perfis
 CREATE POLICY "Allowed roles can view all profiles" ON public.profiles
