@@ -31,9 +31,6 @@ export interface DroneService {
   };
   attachments?: any[];
   created_by?: string;
-  total_value?: number;
-  total_expenses?: number;
-  profit?: number;
 }
 
 export const droneService = {

@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Loader2, Save, Trash2, User, MapPin, Plus as PlusIcon,
-  Settings2, Activity, MessageCircle, Send, Paperclip, FileDown, Upload, X
+  Settings2, Activity, MessageCircle, Send, Paperclip, FileDown, Upload, X,
+  ArrowUpCircle, ArrowDownCircle, DollarSign, ExternalLink
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +22,8 @@ import { serviceOrderService } from '@/services/serviceOrderService';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService } from '@/services/droneLogService';
 import { clientService } from '@/services/clientService';
+import { transactionService, CreateTransactionData } from '@/services/transactionService';
+import { TransactionFormModal } from '@/components/financial/TransactionFormModal';
 import { getCompanySettings } from '@/services/companySettingsService';
 import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { getUsers, UserWithRole } from '@/services/userService';
@@ -62,12 +65,10 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     service_description: '',
     negotiated_conditions: '',
     estimated_start_date: '',
-    estimated_completion_date: '',
-    total_value: '',
-    total_expenses: '',
-    profit: ''
+    estimated_completion_date: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [transactionModal, setTransactionModal] = useState<{ open: boolean; type: 'RECEITA' | 'DESPESA' }>({ open: false, type: 'RECEITA' });
 
   const isPilot = user?.role === 'PILOTO';
   const canSeeNegotiated = ['MASTER', 'DEV', 'FINANCEIRO', 'CONSULTOR_TEC_DRONE'].includes(user?.role || '');
@@ -98,6 +99,18 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
     queryKey: ['company-settings'],
     queryFn: getCompanySettings,
     enabled: open
+  });
+
+  const { data: financialSummary, refetch: refetchFinance } = useQuery({
+    queryKey: ['drone-service-finance-summary', service?.id],
+    queryFn: () => transactionService.getSummary({ drone_service_id: service!.id }),
+    enabled: open && !!service?.id
+  });
+
+  const { data: transactions = [], refetch: refetchTransactions } = useQuery({
+    queryKey: ['drone-service-transactions', service?.id],
+    queryFn: () => transactionService.getAll({ drone_service_id: service!.id }),
+    enabled: open && !!service?.id
   });
 
   // Masks and Utility functions
@@ -159,14 +172,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
           location_link: service.location_link || '',
           area_hectares: service.area_hectares?.toString() || '',
           service_description: service.service_description || '',
-          opening_date: parseDate(service.opening_date) || (service.created_at ? format(new Date(service.created_at), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')),
-          execution_date: parseDate(service.execution_date),
-          estimated_start_date: parseDate(service.estimated_start_date),
           estimated_completion_date: parseDate(service.estimated_completion_date),
-          negotiated_conditions: service.negotiated_conditions || '',
-          total_value: service.total_value?.toString() || '0',
-          total_expenses: service.total_expenses?.toString() || '0',
-          profit: service.profit?.toString() || '0'
+          negotiated_conditions: service.negotiated_conditions || ''
         });
         setIsEditing(false);
       } else {
@@ -180,14 +187,8 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
           location_link: '',
           area_hectares: '',
           service_description: '',
-          opening_date: format(new Date(), 'yyyy-MM-dd'),
-          execution_date: '',
-          estimated_start_date: '',
           estimated_completion_date: '',
-          negotiated_conditions: '',
-          total_value: '0',
-          total_expenses: '0',
-          profit: '0'
+          negotiated_conditions: ''
         });
         setIsEditing(false);
       }
@@ -231,10 +232,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         client_address_street: formData.client_address_street,
         negotiated_conditions: formData.negotiated_conditions,
         estimated_start_date: formData.estimated_start_date || undefined,
-        estimated_completion_date: formData.estimated_completion_date || undefined,
-        total_value: parseFloat(formData.total_value) || 0,
-        total_expenses: parseFloat(formData.total_expenses) || 0,
-        profit: parseFloat(formData.profit) || 0
+        estimated_completion_date: formData.estimated_completion_date || undefined
       });
       toast.success('Informações atualizadas');
       setIsEditing(false);
@@ -330,11 +328,9 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         service_description: formData.service_description || 'Serviço de Drone',
         status: 'PENDENTE',
         opening_date: formData.opening_date,
+        estimated_start_date: formData.estimated_start_date || undefined,
         estimated_completion_date: formData.estimated_completion_date || undefined,
         negotiated_conditions: formData.negotiated_conditions || undefined,
-        total_value: parseFloat(formData.total_value) || 0,
-        total_expenses: parseFloat(formData.total_expenses) || 0,
-        profit: parseFloat(formData.profit) || 0,
         created_by: user?.id
       });
 
@@ -402,7 +398,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => generateDroneServicePDF(service, companySettings, user?.role)} 
+                    onClick={() => generateDroneServicePDF(service, companySettings, user?.role, financialSummary)} 
                     className="rounded-xl h-10 w-10 hover:bg-muted/50 text-primary"
                     title="Baixar PDF"
                   >
@@ -614,112 +610,139 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                 </div>
               </TabsContent>
               
-              <TabsContent value="financial" className="m-0 h-full overflow-y-auto">
-                <div className="p-8 space-y-8 animate-in fade-in duration-500">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="p-6 rounded-[32px] bg-emerald-500/5 border border-emerald-500/10 space-y-4">
-                      <div className="flex items-center gap-3 text-emerald-600">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                          <PlusIcon className="h-5 w-5" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest">Valor Recebido</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold text-emerald-600/60 uppercase ml-1">Total Cobrado (R$)</Label>
-                        <Input 
-                          type="number" 
-                          value={formData.total_value} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const total = parseFloat(val) || 0;
-                            const expenses = parseFloat(formData.total_expenses) || 0;
-                            setFormData({...formData, total_value: val, profit: (total - expenses).toString()});
-                          }} 
-                          className="h-14 rounded-2xl bg-background border-emerald-500/20 text-emerald-700 font-bold text-lg focus:ring-emerald-500/20" 
-                        />
-                      </div>
+              <TabsContent value="financial" className="m-0 h-full overflow-hidden flex flex-col">
+                <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-5 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
+                       <div className="flex items-center justify-between">
+                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60">Total Recebido</span>
+                         <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+                       </div>
+                       <p className="text-2xl font-black text-emerald-600">
+                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.totalReceitas || 0)}
+                       </p>
                     </div>
 
-                    <div className="p-6 rounded-[32px] bg-rose-500/5 border border-rose-500/10 space-y-4">
-                      <div className="flex items-center gap-3 text-rose-600">
-                        <div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center">
-                          <Trash2 className="h-5 w-5" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest">Gasto / Despesa</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold text-rose-600/60 uppercase ml-1">Total Gasto (R$)</Label>
-                        <Input 
-                          type="number" 
-                          value={formData.total_expenses} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const expenses = parseFloat(val) || 0;
-                            const total = parseFloat(formData.total_value) || 0;
-                            setFormData({...formData, total_expenses: val, profit: (total - expenses).toString()});
-                          }} 
-                          className="h-14 rounded-2xl bg-background border-rose-500/20 text-rose-700 font-bold text-lg focus:ring-rose-500/20" 
-                        />
-                      </div>
+                    <div className="p-5 rounded-3xl bg-rose-500/5 border border-rose-500/10 space-y-2">
+                       <div className="flex items-center justify-between">
+                         <span className="text-[10px] font-black uppercase tracking-widest text-rose-600/60">Total Gasto</span>
+                         <ArrowDownCircle className="h-4 w-4 text-rose-500" />
+                       </div>
+                       <p className="text-2xl font-black text-rose-600">
+                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.totalDespesas || 0)}
+                       </p>
                     </div>
 
-                    <div className="p-6 rounded-[32px] bg-primary/5 border border-primary/10 space-y-4 shadow-lg shadow-primary/5">
-                      <div className="flex items-center gap-3 text-primary">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                          <Activity className="h-5 w-5" />
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest">Lucro Líquido</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold text-primary/60 uppercase ml-1">Margem Realizada (R$)</Label>
-                        <Input 
-                          type="number" 
-                          value={formData.profit} 
-                          onChange={(e) => setFormData({...formData, profit: e.target.value})} 
-                          className="h-14 rounded-2xl bg-background border-primary/20 text-primary font-bold text-lg focus:ring-primary/20" 
-                        />
-                      </div>
+                    <div className="p-5 rounded-3xl bg-primary/5 border border-primary/10 space-y-2">
+                       <div className="flex items-center justify-between">
+                         <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Lucro Líquido</span>
+                         <DollarSign className="h-4 w-4 text-primary" />
+                       </div>
+                       <p className="text-2xl font-black text-primary">
+                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.saldo || 0)}
+                       </p>
                     </div>
                   </div>
 
-                  <div className="p-8 rounded-[40px] bg-muted/30 border border-border/50 space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-background flex items-center justify-center text-primary border border-border">
-                        <Settings2 className="h-5 w-5" />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-tighter">Resumo de Viabilidade</h4>
+                  <div className="flex items-center justify-between pt-4">
+                    <h4 className="text-sm font-black uppercase tracking-tighter flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Lançamentos Vinculados
+                    </h4>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 rounded-xl text-[10px] font-black uppercase tracking-widest border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5"
+                        onClick={() => setTransactionModal({ open: true, type: 'RECEITA' })}
+                      >
+                        <PlusIcon className="h-3 w-3 mr-1" /> Receita
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 rounded-xl text-[10px] font-black uppercase tracking-widest border-rose-500/20 text-rose-600 hover:bg-rose-500/5"
+                        onClick={() => setTransactionModal({ open: true, type: 'DESPESA' })}
+                      >
+                        <PlusIcon className="h-3 w-3 mr-1" /> Despesa
+                      </Button>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-end border-b border-border/50 pb-2">
-                          <span className="text-xs font-bold text-muted-foreground uppercase">Resultado Nominal</span>
-                          <span className={cn(
-                            "text-xl font-black italic",
-                            (parseFloat(formData.profit) || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
-                          )}>
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(formData.profit) || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-end border-b border-border/50 pb-2">
-                          <span className="text-xs font-bold text-muted-foreground uppercase">Rentabilidade</span>
-                          <span className="text-lg font-black italic text-foreground/80">
-                            {formData.total_value && parseFloat(formData.total_value) > 0 
-                              ? ((parseFloat(formData.profit) / parseFloat(formData.total_value)) * 100).toFixed(1) + '%' 
-                              : '0%'}
-                          </span>
-                        </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {transactions.length === 0 ? (
+                      <div className="p-12 text-center rounded-3xl border border-dashed border-border bg-muted/20">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Nenhuma transação vinculada</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">Registre receitas ou gastos para esta OS Drone.</p>
                       </div>
-                      
-                      <div className="flex flex-col justify-center">
-                         <Button onClick={handleUpdateDetails} disabled={loading} className="h-14 rounded-[22px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
-                            Salvar Dados Financeiros
-                         </Button>
-                      </div>
-                    </div>
+                    ) : (
+                      transactions.map((tx) => (
+                        <div key={tx.id} className="p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all group flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
+                              tx.type === 'RECEITA' ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
+                            )}>
+                              {tx.type === 'RECEITA' ? <ArrowUpCircle className="h-5 w-5" /> : <ArrowDownCircle className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-foreground">{tx.description}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase">{tx.category}</span>
+                                <span className="text-[10px] text-muted-foreground/40">•</span>
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase">{safeFormatDate(tx.due_date, "dd/MM/yyyy")}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-4">
+                            <div>
+                              <p className={cn(
+                                "text-sm font-black",
+                                tx.type === 'RECEITA' ? "text-emerald-600" : "text-rose-600"
+                              )}>
+                                {tx.type === 'RECEITA' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tx.amount)}
+                              </p>
+                              <Badge variant="secondary" className={cn(
+                                "text-[10px] font-bold uppercase tracking-tighter px-1.5 h-4 border-none",
+                                tx.status === 'PAGO' ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                              )}>
+                                {tx.status === 'PAGO' ? 'Pago' : 'Pendente'}
+                              </Badge>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
+
+                {transactionModal.open && (
+                  <TransactionFormModal
+                    open={transactionModal.open}
+                    onOpenChange={(open) => setTransactionModal({ ...transactionModal, open })}
+                    type={transactionModal.type}
+                    onSubmit={async (data, installments) => {
+                      try {
+                        const loadingToast = toast.loading('Registrando lançamento...');
+                        if (installments > 1) {
+                            await transactionService.createBatch({ ...data, drone_service_id: service?.id, client_id: service?.client_id }, installments);
+                        } else {
+                            await transactionService.create({ ...data, drone_service_id: service?.id, client_id: service?.client_id });
+                        }
+                        toast.dismiss(loadingToast);
+                        toast.success('Lançamento registrado com sucesso!');
+                        setTransactionModal({ ...transactionModal, open: false });
+                        refetchFinance();
+                        refetchTransactions();
+                      } catch (err) {
+                        toast.error('Erro ao registrar lançamento');
+                      }
+                    }}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="history" className="m-0 h-full">

@@ -9,6 +9,7 @@ import { getUsers, UserWithRole } from '@/services/userService';
 import { toast } from 'sonner';
 import { droneService, DroneService, DroneServiceStatus } from '@/services/droneService';
 import { droneLogService } from '@/services/droneLogService';
+import { transactionService } from '@/services/transactionService';
 import { getCompanySettings, CompanySettings } from '@/services/companySettingsService';
 import { generateDroneServicePDF } from '@/utils/dronePdfGenerator';
 import { DroneServiceModal } from '@/components/drone/DroneServiceModal';
@@ -147,6 +148,24 @@ export default function DroneServices() {
       toast.error('Erro ao mover OS');
     } finally {
       setDraggedService(null);
+    }
+  };
+
+  const handleDownloadPDF = async (service: DroneService) => {
+    try {
+      const loadingToast = toast.loading('Preparando PDF...');
+      
+      let financialSummary = null;
+      if (user?.role === 'MASTER' || user?.role === 'DEV' || user?.role === 'CONSULTOR_TEC_DRONE') {
+        financialSummary = await transactionService.getSummary({ drone_service_id: service.id });
+      }
+
+      await generateDroneServicePDF(service, companySettings, user?.role, financialSummary);
+      toast.dismiss(loadingToast);
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
     }
   };
 
@@ -414,12 +433,7 @@ export default function DroneServices() {
                     </TableCell>
                     {(user?.role === 'MASTER' || user?.role === 'DEV' || user?.role === 'CONSULTOR_TEC_DRONE') && (
                       <TableCell className="py-4">
-                        <span className={cn(
-                          "text-xs font-black italic",
-                          (service.profit || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
-                        )}>
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.profit || 0)}
-                        </span>
+                        <DroneServiceProfitCell droneServiceId={service.id} />
                       </TableCell>
                     )}
                     <TableCell className="py-4">
@@ -441,7 +455,7 @@ export default function DroneServices() {
                           className="h-8 w-8 rounded-lg text-primary hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            generateDroneServicePDF(service, companySettings);
+                            handleDownloadPDF(service);
                           }}
                           title="Baixar PDF"
                         >
@@ -578,13 +592,29 @@ export default function DroneServices() {
         </div>
       )}
 
-      <DroneServiceModal
-        service={selectedService}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        onSave={refetch}
       />
     </div>
+  );
+}
+
+function DroneServiceProfitCell({ droneServiceId }: { droneServiceId: string }) {
+  const { data: summary, isLoading } = useQuery({
+    queryKey: ['drone-service-profit', droneServiceId],
+    queryFn: () => transactionService.getSummary({ drone_service_id: droneServiceId }),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  if (isLoading) return <div className="h-4 w-16 bg-muted animate-pulse rounded" />;
+
+  const profit = summary?.saldo || 0;
+
+  return (
+    <span className={cn(
+      "text-xs font-black italic",
+      profit >= 0 ? "text-emerald-500" : "text-rose-500"
+    )}>
+      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profit)}
+    </span>
   );
 }
 

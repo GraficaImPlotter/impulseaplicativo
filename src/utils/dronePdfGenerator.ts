@@ -1,7 +1,7 @@
-import jsPDF from 'jspdf';
 import { DroneService } from '@/services/droneService';
 import { CompanySettings } from '@/services/companySettingsService';
 import { storageService } from '@/services/storageService';
+import { FinancialSummary } from '@/services/transactionService';
 
 const formatDate = (dateString?: string): string => {
   if (!dateString) return 'Não informada';
@@ -47,7 +47,8 @@ async function loadLogoAsBase64(logoUrl: string): Promise<string | null> {
 export async function generateDroneServicePDF(
   service: DroneService,
   companySettings?: CompanySettings | null,
-  userRole?: string
+  userRole?: string,
+  financialSummary?: FinancialSummary | null
 ): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -193,7 +194,7 @@ export async function generateDroneServicePDF(
   // Financial and Negotiated Conditions (Hidden for Pilots)
   const isPilot = userRole === 'PILOTO';
   if (!isPilot) {
-    if (service.negotiated_conditions || service.total_value) {
+    if (service.negotiated_conditions || financialSummary) {
       yPos += 10;
       doc.setTextColor(...droneColor);
       doc.setFontSize(11);
@@ -210,20 +211,20 @@ export async function generateDroneServicePDF(
       doc.setFont('helvetica', 'bold');
       doc.text('Condições:', margin + 5, yPos);
       doc.setFont('helvetica', 'normal');
-      const condLines = doc.splitTextToSize(service.negotiated_conditions || 'Padrao', pageWidth - margin - 55);
+      const condLines = doc.splitTextToSize(service.negotiated_conditions || 'A combinar', pageWidth - margin - 55);
       doc.text(condLines, margin + 45, yPos);
       yPos += Math.max(8, condLines.length * 5);
 
       doc.setFont('helvetica', 'bold');
-      doc.text('Valor Recebido:', margin + 5, yPos);
+      doc.text('Total Recebido:', margin + 5, yPos);
       doc.setFont('helvetica', 'normal');
-      doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.total_value || 0), margin + 45, yPos);
+      doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.totalReceitas || 0), margin + 45, yPos);
 
       yPos += 6;
       doc.setFont('helvetica', 'bold');
       doc.text('Total Gasto / Lucro:', margin + 5, yPos);
       doc.setFont('helvetica', 'normal');
-      const financialDetails = `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.total_expenses || 0)} / ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.profit || 0)}`;
+      const financialDetails = `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.totalDespesas || 0)} / ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialSummary?.saldo || 0)}`;
       doc.text(financialDetails, margin + 45, yPos);
       yPos += 10;
     }
