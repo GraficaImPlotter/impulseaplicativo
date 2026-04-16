@@ -5,7 +5,13 @@ import { storageService } from '@/services/storageService';
 
 const formatDate = (dateString?: string): string => {
   if (!dateString) return 'Não informada';
-  return new Date(dateString).toLocaleDateString('pt-BR');
+  try {
+    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
+    if (isNaN(date.getTime())) return 'Não informada';
+    return date.toLocaleDateString('pt-BR');
+  } catch (e) {
+    return 'Não informada';
+  }
 };
 
 const getStatusLabel = (status: string): string => {

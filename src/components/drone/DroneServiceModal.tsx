@@ -217,6 +217,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
         opening_date: formData.opening_date,
         execution_date: formData.execution_date || undefined,
         client_id: formData.client_id || undefined,
+        client_name: formData.client_name,
         client_phone: formData.client_phone,
         client_document: formData.client_document,
         client_address_street: formData.client_address_street,
@@ -326,8 +327,6 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
 
       await droneLogService.create(newService.id, 'OS Drone criada no sistema', user?.name || 'Sistema');
       
-      // Explicitly invalidate queries to force a fresh fetch from Supabase
-      const { useQueryClient } = await import('@tanstack/react-query');
       // Note: We can't easily use hooks inside async functions, so we rely on the onSave refetch passed as prop
       
       toast.success('OS Drone criada com sucesso');
