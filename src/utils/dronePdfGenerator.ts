@@ -46,7 +46,8 @@ async function loadLogoAsBase64(logoUrl: string): Promise<string | null> {
 
 export async function generateDroneServicePDF(
   service: DroneService,
-  companySettings?: CompanySettings | null
+  companySettings?: CompanySettings | null,
+  userRole?: string
 ): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -188,6 +189,45 @@ export async function generateDroneServicePDF(
   const locationLines = doc.splitTextToSize(service.location_link || 'Não informado', pageWidth - margin - 55);
   doc.text(locationLines, margin + 45, yPos);
   yPos += (locationLines.length * 5);
+
+  // Financial and Negotiated Conditions (Hidden for Pilots)
+  const isPilot = userRole === 'PILOTO';
+  if (!isPilot) {
+    if (service.negotiated_conditions || service.total_value) {
+      yPos += 10;
+      doc.setTextColor(...droneColor);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONDIÇÕES E FINANCEIRO', margin, yPos);
+
+      yPos += 10;
+      doc.setFillColor(245, 252, 255);
+      doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'F');
+
+      yPos += 8;
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Condições:', margin + 5, yPos);
+      doc.setFont('helvetica', 'normal');
+      const condLines = doc.splitTextToSize(service.negotiated_conditions || 'Padrao', pageWidth - margin - 55);
+      doc.text(condLines, margin + 45, yPos);
+      yPos += Math.max(8, condLines.length * 5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Valor Recebido:', margin + 5, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.total_value || 0), margin + 45, yPos);
+
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Gasto / Lucro:', margin + 5, yPos);
+      doc.setFont('helvetica', 'normal');
+      const financialDetails = `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.total_expenses || 0)} / ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.profit || 0)}`;
+      doc.text(financialDetails, margin + 45, yPos);
+      yPos += 10;
+    }
+  }
 
   // Description Section
   if (service.service_description) {

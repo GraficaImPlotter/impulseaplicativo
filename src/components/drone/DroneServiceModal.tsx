@@ -402,7 +402,7 @@ export function DroneServiceModal({ service, open, onOpenChange, onSave }: Drone
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => generateDroneServicePDF(service, companySettings)} 
+                    onClick={() => generateDroneServicePDF(service, companySettings, user?.role)} 
                     className="rounded-xl h-10 w-10 hover:bg-muted/50 text-primary"
                     title="Baixar PDF"
                   >
