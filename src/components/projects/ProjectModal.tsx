@@ -1232,7 +1232,7 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
                     Enviar para Setor
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-md">
+                <AlertDialogContent className="max-w-md z-[200]">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Enviar projeto para qual setor?</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -1275,7 +1275,7 @@ export function ProjectModal({ project, open, onOpenChange, onSave, preselectedC
                           <SelectTrigger>
                             <SelectValue placeholder={loadingTechnicians ? 'Carregando...' : 'Selecione um técnico'} />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[210]">
                             {technicians.map((technician) => (
                               <SelectItem key={technician.id} value={technician.id}>
                                 {technician.name}
